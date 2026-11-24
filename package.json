@@ -1,0 +1,25 @@
+{
+  "name": "palle-praja",
+  "version": "1.0.0",
+  "description": "Palle Praja - Smart Village Grievance Redressal System (Hackathon Prototype)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "govtech",
+    "smart-village",
+    "grievance-redressal",
+    "rural-development",
+    "hackathon",
+    "voice-first",
+    "civic-tech"
+  ],
+  "author": "Palle Praja Hackathon Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
+}

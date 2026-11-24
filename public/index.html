@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Palle Praja – Smart Village Grievance Redressal System | పల్లె ప్రజా</title>
+  <meta name="description" content="Palle Praja is a voice-first, transparent village grievance redressal platform connecting rural citizens, village officials, and higher authorities.">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Custom Modern GovTech Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Universal Persistent Demo Switcher Bar (For Hackathon Judges) -->
+  <aside class="demo-top-bar" aria-label="Hackathon Demo Bar">
+    <div class="demo-left-section">
+      <div class="demo-badge-pill">
+        <i class="fa-solid fa-bolt"></i>
+        <span data-i18n="demoBadge">HACKATHON DEMO MODE</span>
+      </div>
+
+      <!-- Quick Role Switcher Buttons -->
+      <nav class="role-switcher-group" aria-label="Switch User Persona">
+        <button class="role-btn active" id="btn-role-citizen" onclick="app.switchRole('citizen')">
+          <i class="fa-solid fa-user"></i>
+          <span data-i18n="roleCitizen">Villager Portal</span>
+        </button>
+        <button class="role-btn" id="btn-role-official" onclick="app.switchRole('official')">
+          <i class="fa-solid fa-building-columns"></i>
+          <span data-i18n="roleOfficial">Grama Sachivalayam</span>
+        </button>
+        <button class="role-btn" id="btn-role-authority" onclick="app.switchRole('authority')">
+          <i class="fa-solid fa-award"></i>
+          <span data-i18n="roleAuthority">District Authority</span>
+        </button>
+        <button class="role-btn" id="btn-role-transparency" onclick="app.switchRole('transparency')">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span data-i18n="roleTransparency">Public Transparency</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="demo-right-section">
+      <!-- Language Switcher Toggle -->
+      <div class="lang-toggle-box" aria-label="Language selection">
+        <button class="lang-btn active" id="lang-en-btn" onclick="i18n.setLanguage('en')">English</button>
+        <button class="lang-btn" id="lang-te-btn" onclick="i18n.setLanguage('te')">తెలుగు</button>
+      </div>
+
+      <!-- Demo Walkthrough Guide Button -->
+      <button class="btn-header-action btn-guide" onclick="app.toggleWalkthroughDrawer()" title="View 15-step Hackathon Scenario Walkthrough">
+        <i class="fa-solid fa-list-check"></i>
+        <span data-i18n="walkthroughGuide">Demo Guide</span>
+      </button>
+
+      <!-- Reset Sample Data Button -->
+      <button class="btn-header-action btn-reset" onclick="app.confirmResetData()" title="Reset to original sample data">
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+        <span data-i18n="resetDemo">Reset Data</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Application Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <div class="brand-emblem">
+          <i class="fa-solid fa-seedling"></i>
+        </div>
+        <div class="brand-text">
+          <h1 data-i18n="appName">Palle Praja</h1>
+          <p data-i18n="tagline">Mee Ooru, Mee Hakku, Mee Swaram</p>
+        </div>
+      </div>
+
+      <!-- Active Context & Persona Pill -->
+      <div class="current-context-badge">
+        <div class="village-indicator">
+          <span class="live-dot"></span>
+          <span id="header-village-name" data-i18n="currentVillage">Ramapuram Grama Panchayat</span>
+        </div>
+        <div class="persona-tag" id="header-persona-tag" data-i18n="personaCitizen">Rama Rao (Villager)</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-content">
+
+    <!-- ====================================================================
+         MODULE A: VILLAGER APPLICATION
+         ==================================================================== -->
+    <section id="module-villager" class="module-view active">
+      
+      <!-- Sub-Navigation Tabs for Citizen Flow -->
+      <nav class="sub-nav-tabs" aria-label="Villager sub-navigation">
+        <button class="sub-tab-btn active" id="tab-welcome" onclick="app.switchVillagerSubView('welcome')">
+          <i class="fa-solid fa-house"></i>
+          <span>Welcome / Home</span>
+        </button>
+        <button class="sub-tab-btn" id="tab-dash" onclick="app.switchVillagerSubView('dash')">
+          <i class="fa-solid fa-table-columns"></i>
+          <span>My Dashboard</span>
+        </button>
+        <button class="sub-tab-btn" id="tab-register" onclick="app.switchVillagerSubView('register')">
+          <i class="fa-solid fa-microphone-lines"></i>
+          <span data-i18n="btnNewGrievance">+ File New Grievance</span>
+        </button>
+        <button class="sub-tab-btn" id="tab-track" onclick="app.switchVillagerSubView('track')">
+          <i class="fa-solid fa-magnifying-glass-location"></i>
+          <span data-i18n="btnTrackGrievance">Track Grievance</span>
+        </button>
+      </nav>
+
+      <!-- SCREEN 1: Welcome / Landing Page -->
+      <div id="subview-welcome" class="villager-subview active">
+        <!-- Hero Card -->
+        <article class="welcome-hero">
+          <div class="hero-tag">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>GovTech Civic Innovation for Rural India</span>
+          </div>
+          <h2 class="hero-title" data-i18n="heroTitle">
+            Empowering Villages with Direct Voice & Transparent Action
+          </h2>
+          <p class="hero-subtitle" data-i18n="heroDesc">
+            Report damaged roads, water shortages, power outages, and drainage issues in your mother tongue. Track real-time progress and verify before grievances are closed.
+          </p>
+          <div class="hero-actions">
+            <button class="btn-primary-hero" onclick="app.switchVillagerSubView('register')">
+              <i class="fa-solid fa-microphone"></i>
+              <span data-i18n="getStartedBtn">Speak or Report Issue</span>
+            </button>
+            <button class="btn-secondary-hero" onclick="app.switchVillagerSubView('track')">
+              <i class="fa-solid fa-location-crosshairs"></i>
+              <span data-i18n="trackGrievanceBtn">Track My Grievance</span>
+            </button>
+            <button class="btn-secondary-hero" onclick="app.switchRole('transparency')">
+              <i class="fa-solid fa-chart-simple"></i>
+              <span data-i18n="viewTransparencyBtn">Village Transparency</span>
+            </button>
+          </div>
+        </article>
+
+        <!-- Live Village Stats Strip -->
+        <div class="stats-strip" id="welcome-stats-strip">
+          <div class="stat-box">
+            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="stat-data">
+              <h4 id="stat-resolved-count">142</h4>
+              <p data-i18n="statTotalResolved">Complaints Resolved</p>
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-icon blue"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="stat-data">
+              <h4 id="stat-sla-pct">94.2%</h4>
+              <p data-i18n="statSlaCompliance">SLA Adherence Rate</p>
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-icon gold"><i class="fa-solid fa-hourglass-half"></i></div>
+            <div class="stat-data">
+              <h4>2.8 <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="statDays">Days</span></h4>
+              <p data-i18n="statAvgResolution">Avg. Resolution Time</p>
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-icon purple"><i class="fa-solid fa-list-check"></i></div>
+            <div class="stat-data">
+              <h4 id="stat-active-count">6</h4>
+              <p data-i18n="statActiveGrievances">Active Grievances</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Simple Steps Section -->
+        <div class="section-header">
+          <h3 data-i18n="howItWorksTitle">How Palle Praja Works in 3 Simple Steps</h3>
+        </div>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-icon-wrap"><i class="fa-solid fa-microphone-lines"></i></div>
+            <h3 data-i18n="step1Title">1. Speak in Your Voice</h3>
+            <p data-i18n="step1Desc">No typing required. Just talk in Telugu or English and snap a photo of the damaged road, water leak, or fallen pole.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-icon-wrap"><i class="fa-solid fa-network-wired"></i></div>
+            <h3 data-i18n="step2Title">2. Automatic Assignment</h3>
+            <p data-i18n="step2Desc">Instant unique ID & automated dispatch to village engineering departments with a strict 72-hour resolution SLA.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-icon-wrap"><i class="fa-solid fa-user-check"></i></div>
+            <h3 data-i18n="step3Title">3. Verify Before Closure</h3>
+            <p data-i18n="step3Desc">Officials must upload photographic resolution proof. Citizens audit the work and can reopen if not properly fixed.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: Villager Dashboard -->
+      <div id="subview-dash" class="villager-subview">
+        <div class="villager-welcome-banner">
+          <div class="villager-greeting">
+            <h2 data-i18n="greetingVillager">Namaskaram, Rama Rao garu</h2>
+            <p data-i18n="dashSubtitle">Ward 4, Ramapuram Grama Panchayat</p>
+          </div>
+          <div class="dash-actions">
+            <button class="btn-dash-primary" onclick="app.switchVillagerSubView('register')">
+              <i class="fa-solid fa-plus"></i>
+              <span data-i18n="btnNewGrievance">+ File New Grievance</span>
+            </button>
+            <button class="btn-dash-outline" onclick="app.switchRole('transparency')">
+              <i class="fa-solid fa-chart-column"></i>
+              <span data-i18n="viewTransparencyBtn">Village Transparency</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Grama Sabha Announcements -->
+        <div class="announcement-card">
+          <div class="announcement-icon"><i class="fa-solid fa-bullhorn"></i></div>
+          <div class="announcement-content">
+            <h4 data-i18n="announcementsTitle">Village Grama Sabha Notice</h4>
+            <ul>
+              <li data-i18n="announcement1">Weekly drinking water pipeline disinfection scheduled for Wednesday.</li>
+              <li data-i18n="announcement2">Mission Bhagiratha team inspecting overhead water tanks in Ward 3 and 4.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- My Grievances History Header & Cards Grid -->
+        <div class="section-header">
+          <h3 data-i18n="myComplaintsTitle">My Grievance History</h3>
+          <span id="citizen-complaint-count" class="id-badge">Loading...</span>
+        </div>
+        <div class="complaints-grid" id="citizen-complaints-list">
+          <!-- Rendered dynamically via JavaScript -->
+        </div>
+      </div>
+
+      <!-- SCREEN 3: Complaint Registration (Voice-First & Photo) -->
+      <div id="subview-register" class="villager-subview">
+        <div class="form-shell">
+          <div class="form-header">
+            <h2 data-i18n="formTitle">Register a Village Grievance</h2>
+            <p data-i18n="formSubtitle">Voice-first reporting with photo evidence and GPS location</p>
+          </div>
+
+          <form id="grievance-form" onsubmit="app.handleGrievanceSubmit(event)">
+            
+            <!-- 1. Category Selection -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fa-solid fa-layer-group"></i>
+                <span data-i18n="selectCategory">1. Select Category of Problem</span>
+              </div>
+              <div class="category-selector-grid">
+                <div class="cat-select-card active" data-category="roads" onclick="app.selectCategory('roads')">
+                  <div class="cat-card-header">
+                    <span class="cat-card-icon">🛣️</span>
+                    <span data-i18n="catRoads">Roads & Culverts</span>
+                  </div>
+                  <p class="cat-card-desc" data-i18n="catRoadsDesc">Potholes, broken roads, damaged culvert bridges</p>
+                </div>
+                <div class="cat-select-card" data-category="water" onclick="app.selectCategory('water')">
+                  <div class="cat-card-header">
+                    <span class="cat-card-icon">💧</span>
+                    <span data-i18n="catWater">Drinking Water Supply</span>
+                  </div>
+                  <p class="cat-card-desc" data-i18n="catWaterDesc">Burst pipes, contaminated water, dry borewells</p>
+                </div>
+                <div class="cat-select-card" data-category="electricity" onclick="app.selectCategory('electricity')">
+                  <div class="cat-card-header">
+                    <span class="cat-card-icon">⚡</span>
+                    <span data-i18n="catElectricity">Electricity & Power</span>
+                  </div>
+                  <p class="cat-card-desc" data-i18n="catElectricityDesc">Sparks, burnt transformers, low hanging wires</p>
+                </div>
+                <div class="cat-select-card" data-category="drainage" onclick="app.selectCategory('drainage')">
+                  <div class="cat-card-header">
+                    <span class="cat-card-icon">🚯</span>
+                    <span data-i18n="catDrainage">Drainage & Sewage</span>
+                  </div>
+                  <p class="cat-card-desc" data-i18n="catDrainageDesc">Clogged drains, overflow into streets, stagnation</p>
+                </div>
+                <div class="cat-select-card" data-category="sanitation" onclick="app.selectCategory('sanitation')">
+                  <div class="cat-card-header">
+                    <span class="cat-card-icon">🧹</span>
+                    <span data-i18n="catSanitation">Sanitation & Waste</span>
+                  </div>
+                  <p class="cat-card-desc" data-i18n="catSanitationDesc">Garbage piles, market waste, spraying lime</p>
+                </div>
+                <div class="cat-select-card" data-category="other" onclick="app.selectCategory('other')">
+                  <div class="cat-card-header">
+                    <span class="cat-card-icon">📋</span>
+                    <span data-i18n="catOther">Other Village Issues</span>
+                  </div>
+                  <p class="cat-card-desc" data-i18n="catOtherDesc">Streetlights, public buildings, encroachment</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Voice-First Description Input -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fa-solid fa-microphone-lines"></i>
+                <span data-i18n="voiceSectionTitle">2. Describe Problem (Speak or Type)</span>
+              </div>
+              
+              <!-- Voice Microphone Interactive Box -->
+              <div class="voice-input-box" id="voice-input-box">
+                <div class="voice-mic-container">
+                  <button type="button" class="mic-circle-btn" id="voice-record-btn" onclick="app.toggleVoiceInput()" aria-label="Toggle Voice Recording">
+                    <i class="fa-solid fa-microphone"></i>
+                  </button>
+                  <div class="audio-waves-container" id="audio-wave-bars">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                  </div>
+                  <p class="mic-status-label" id="mic-status-text" data-i18n="micButtonPrompt">Click to Speak in Telugu or English</p>
+                </div>
+
+                <!-- Quick Simulation Presets for Hackathon Judges -->
+                <div class="voice-presets-container">
+                  <div class="voice-presets-title">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span data-i18n="quickVoicePresets">Quick Hackathon Voice Simulation Presets:</span>
+                  </div>
+                  <div class="presets-pill-list">
+                    <button type="button" class="preset-chip" onclick="app.useVoicePreset('roads')">
+                      <span>🛣️</span>
+                      <span data-i18n="presetRoads">Damaged Road near School</span>
+                    </button>
+                    <button type="button" class="preset-chip" onclick="app.useVoicePreset('water')">
+                      <span>💧</span>
+                      <span data-i18n="presetWater">Drinking Water Pipe Burst</span>
+                    </button>
+                    <button type="button" class="preset-chip" onclick="app.useVoicePreset('electricity')">
+                      <span>⚡</span>
+                      <span data-i18n="presetPower">Burnt Transformer Sparks</span>
+                    </button>
+                    <button type="button" class="preset-chip" onclick="app.useVoicePreset('drainage')">
+                      <span>🚯</span>
+                      <span data-i18n="presetDrainage">Open Drain Overflow</span>
+                    </button>
+                    <button type="button" class="preset-chip" onclick="app.useVoicePreset('sanitation')">
+                      <span>🧹</span>
+                      <span data-i18n="presetSanitation">Rythu Bazaar Garbage</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Textarea for transcript / manual typing -->
+              <textarea id="complaint-desc-input" class="form-textarea" required
+                data-i18n-placeholder="descPlaceholder"
+                placeholder="Describe the grievance location and details (or use the microphone above)..."></textarea>
+            </div>
+
+            <!-- 3. Photo Evidence Upload -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fa-solid fa-camera"></i>
+                <span data-i18n="photoSectionTitle">3. Upload Photo Evidence</span>
+              </div>
+              <div class="photo-uploader" onclick="document.getElementById('photo-file-input').click()">
+                <input type="file" id="photo-file-input" accept="image/*" style="display: none;" onchange="app.handlePhotoUpload(event)">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--primary-600); margin-bottom: 8px;"></i>
+                <p data-i18n="photoUploadHint">Drag and drop or select an image file</p>
+                <div class="photo-preview-wrap" id="photo-preview-box" style="display: none;">
+                  <img id="photo-preview-img" class="photo-preview-img" src="" alt="Defect Preview">
+                  <button type="button" class="btn-remove-photo" onclick="app.removePhoto(event)">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Sample Photo selector for seamless hackathon testing -->
+              <div class="sample-photos-row">
+                <span style="font-size: 0.75rem; color: var(--gray-500); align-self: center;" data-i18n="photoQuickPick">Use realistic sample photo:</span>
+                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('pothole')">
+                  🛣️ <span data-i18n="photoPothole">Damaged Road</span>
+                </button>
+                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('pipe')">
+                  💧 <span data-i18n="photoLeak">Water Leak</span>
+                </button>
+                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('sparks')">
+                  ⚡ <span data-i18n="photoSparks">Transformer</span>
+                </button>
+                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('drain')">
+                  🚯 <span data-i18n="photoDrain">Clogged Drain</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. Location Details & GPS -->
+            <div class="form-section">
+              <div class="form-section-title">
+                <i class="fa-solid fa-map-pin"></i>
+                <span data-i18n="locationSectionTitle">4. Village Location Details</span>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label data-i18n="lblVillage">Gram Panchayat / Village</label>
+                  <select id="form-village-select" class="form-select">
+                    <option value="Ramapuram (రామాపురం)">Ramapuram (రామాపురం)</option>
+                    <option value="Gandhipuram (గాంధీపురం)">Gandhipuram (గాంధీపురం)</option>
+                    <option value="Krishnapuram (కృష్ణాపురం)">Krishnapuram (కృష్ణాపురం)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label data-i18n="lblWard">Ward Number</label>
+                  <select id="form-ward-select" class="form-select">
+                    <option value="Ward 1 (వార్డు 1)">Ward 1 (వార్డు 1)</option>
+                    <option value="Ward 2 (వార్డు 2)">Ward 2 (వార్డు 2)</option>
+                    <option value="Ward 3 (వార్డు 3)">Ward 3 (వార్డు 3)</option>
+                    <option value="Ward 4 (వార్డు 4)" selected>Ward 4 (వార్డు 4)</option>
+                    <option value="Ward 5 (వార్డు 5)">Ward 5 (వార్డు 5)</option>
+                    <option value="Ward 6 (వార్డు 6)">Ward 6 (వార్డు 6)</option>
+                    <option value="Ward 7 (వార్డు 7)">Ward 7 (వార్డు 7)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label data-i18n="lblLandmark">Specific Landmark / Street</label>
+                  <input type="text" id="form-landmark-input" class="form-input" 
+                    data-i18n-placeholder="landmarkPlaceholder"
+                    placeholder="e.g. Near ZP High School, Opp Shiva Temple" 
+                    value="Near ZP High School Gate">
+                </div>
+                <div class="form-group">
+                  <label data-i18n="lblGps">GPS Geotag</label>
+                  <div class="gps-group">
+                    <input type="text" id="form-gps-input" class="form-input" readonly value="16.5062° N, 80.6480° E">
+                    <button type="button" class="btn-detect-gps" onclick="app.detectGpsLocation()">
+                      <i class="fa-solid fa-location-crosshairs"></i>
+                      <span data-i18n="btnDetectGps">Detect GPS</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid-2" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label data-i18n="lblCitizenName">Citizen Name</label>
+                  <input type="text" id="form-citizen-name" class="form-input" value="Rama Rao (రామారావు)">
+                </div>
+                <div class="form-group">
+                  <label data-i18n="lblCitizenPhone">Mobile Number</label>
+                  <input type="tel" id="form-citizen-phone" class="form-input" value="+91 98480 23114">
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-submit-full" id="btn-submit-form">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span data-i18n="btnSubmitGrievance">Submit Village Grievance</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- SCREEN 4: Complaint Tracking Screen -->
+      <div id="subview-track" class="villager-subview">
+        <div class="tracking-search-bar">
+          <i class="fa-solid fa-magnifying-glass" style="color: var(--primary-600); font-size: 1.1rem;"></i>
+          <input type="text" id="track-id-input" class="tracking-input" 
+            data-i18n-placeholder="searchPlaceholder"
+            placeholder="Enter Complaint ID (e.g. PP-2025-RD-1042)..." 
+            value="PP-2025-RD-1042">
+          <button class="btn-dash-primary" onclick="app.searchAndTrack()">
+            <span data-i18n="btnSearch">Track</span>
+          </button>
+        </div>
+
+        <!-- Quick Complaint ID Chips for rapid demo navigation -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; align-items: center;">
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--gray-500);">Quick Demo Grievances:</span>
+          <button class="id-badge" onclick="app.trackDirectId('PP-2025-RD-1042')">PP-2025-RD-1042 (In Progress Road)</button>
+          <button class="id-badge" onclick="app.trackDirectId('PP-2025-WT-2081')">PP-2025-WT-2081 (Overdue Water)</button>
+          <button class="id-badge" onclick="app.trackDirectId('PP-2025-EL-3119')">PP-2025-EL-3119 (Escalated Power)</button>
+          <button class="id-badge" onclick="app.trackDirectId('PP-2025-SN-5120')">PP-2025-SN-5120 (Resolved Waste)</button>
+        </div>
+
+        <!-- Tracking Dossier Card -->
+        <div id="tracking-dossier-container">
+          <!-- Dynamically populated via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         MODULE B: VILLAGE OFFICIAL DASHBOARD
+         ==================================================================== -->
+    <section id="module-official" class="module-view">
+      <!-- Official Ops Banner -->
+      <div class="official-ops-bar">
+        <div class="official-ops-title">
+          <h2 data-i18n="officialTitle">Grama Sachivalayam Grievance Operations</h2>
+          <p data-i18n="officialSubtitle">Gram Panchayat Complaints Management & Field Dispatch Console</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <span class="persona-tag" data-i18n="personaOfficial">V. Srikanth (Panchayat Sec.)</span>
+          <button class="btn-dash-outline" onclick="app.refreshOfficialData()">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Stat Counters -->
+      <div class="stats-strip" id="official-stats-strip">
+        <div class="stat-box">
+          <div class="stat-icon green"><i class="fa-solid fa-inbox"></i></div>
+          <div class="stat-data">
+            <h4 id="off-stat-total">6</h4>
+            <p data-i18n="statTotalReceived">Total Complaints</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon blue"><i class="fa-solid fa-clock"></i></div>
+          <div class="stat-data">
+            <h4 id="off-stat-pending">1</h4>
+            <p data-i18n="statPending">Pending Assignment</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon gold"><i class="fa-solid fa-person-digging"></i></div>
+          <div class="stat-data">
+            <h4 id="off-stat-progress">2</h4>
+            <p data-i18n="statInProgress">Work In Progress</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon purple"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="stat-data">
+            <h4 id="off-stat-resolved">1</h4>
+            <p data-i18n="statResolved">Resolved & Verified</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbar: Search & Filters -->
+      <div class="toolbar-row">
+        <div class="search-field-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="official-search-input" 
+            data-i18n-placeholder="searchComplaints" 
+            placeholder="Search by ID, keyword, citizen..." 
+            oninput="app.filterOfficialTable()">
+        </div>
+        <select id="official-cat-filter" class="filter-select" onchange="app.filterOfficialTable()">
+          <option value="all">All Categories (అన్ని విభాగాలు)</option>
+          <option value="roads">Roads (రహదారులు)</option>
+          <option value="water">Drinking Water (తాగునీరు)</option>
+          <option value="electricity">Electricity (విద్యుత్)</option>
+          <option value="drainage">Drainage (మురుగు)</option>
+          <option value="sanitation">Sanitation (పారిశుధ్యం)</option>
+        </select>
+        <select id="official-status-filter" class="filter-select" onchange="app.filterOfficialTable()">
+          <option value="all">All Statuses (అన్ని స్థితులు)</option>
+          <option value="Submitted">Submitted (నమోదైంది)</option>
+          <option value="Assigned">Assigned (కేటాయించబడింది)</option>
+          <option value="In Progress">In Progress (పని జరుగుతోంది)</option>
+          <option value="Resolved">Resolved (పరిష్కారమైంది)</option>
+          <option value="overdue">Overdue SLA (గడువు దాటినవి)</option>
+          <option value="Escalated">Escalated (ఎస్కలేట్ అయినవి)</option>
+          <option value="Reopened">Reopened (మళ్లీ ఓపెన్)</option>
+        </select>
+      </div>
+
+      <!-- Official Complaints Table -->
+      <div class="table-responsive-box">
+        <table class="gov-table">
+          <thead>
+            <tr>
+              <th data-i18n="thId">Grievance ID</th>
+              <th data-i18n="thCitizen">Citizen & Ward</th>
+              <th data-i18n="thCategory">Category</th>
+              <th data-i18n="thDate">Filed Date</th>
+              <th data-i18n="thStatus">Status</th>
+              <th data-i18n="thSla">SLA Clock</th>
+              <th data-i18n="thActions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="official-complaints-tbody">
+            <!-- Dynamically populated via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         MODULE C: HIGHER AUTHORITY DASHBOARD
+         ==================================================================== -->
+    <section id="module-authority" class="module-view">
+      <!-- Authority Executive Hero -->
+      <article class="authority-hero">
+        <div class="authority-tag">
+          <i class="fa-solid fa-building-shield"></i>
+          <span>District Collectorate & Mandal Parishad Oversight</span>
+        </div>
+        <h2 data-i18n="authorityTitle">District Collectorate & ZP Monitoring Console</h2>
+        <p data-i18n="authoritySubtitle">Real-Time Rural Grievance Oversight & SLA Accountability Portal</p>
+      </article>
+
+      <!-- KPI Executive Scorecards -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label" data-i18n="kpiIndex">Grievance Redressal Index</div>
+          <div class="kpi-value" style="color: var(--primary-600);">91.8%</div>
+          <div class="kpi-subtext" data-i18n="kpiIndexDesc">Based on citizen satisfaction & speed</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label" data-i18n="kpiCompliance">Statutory SLA Adherence</div>
+          <div class="kpi-value" style="color: var(--accent-blue);" id="auth-sla-stat">83.3%</div>
+          <div class="kpi-subtext" data-i18n="kpiComplianceDesc">Complaints resolved within 72 hrs</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label" data-i18n="kpiAvgDays">Avg Turnaround</div>
+          <div class="kpi-value" style="color: var(--accent-gold-dark);">2.8 <span style="font-size: 1rem;">Days</span></div>
+          <div class="kpi-subtext" data-i18n="kpiAvgDaysDesc">From registration to resolution</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label" data-i18n="kpiOverdueBreach">Critical SLA Breaches</div>
+          <div class="kpi-value" style="color: var(--accent-red);" id="auth-breach-count">1</div>
+          <div class="kpi-subtext" data-i18n="kpiOverdueBreachDesc">Requires Collector intervention</div>
+        </div>
+      </div>
+
+      <!-- Overdue Escalation Chamber -->
+      <div class="escalation-chamber-card">
+        <div class="chamber-header">
+          <h3>
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span data-i18n="overdueConsoleTitle">Overdue Grievance Escalation Chamber</span>
+          </h3>
+          <span class="status-pill status-overdue" id="overdue-pill-badge">1 Urgent Escalation Pending</span>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--gray-600); margin-bottom: 16px;" data-i18n="overdueConsoleDesc">
+          Complaints exceeding statutory resolution deadlines. One-click intervention dispatches high-priority Collectorate mandates.
+        </p>
+        <div class="chamber-list" id="overdue-chamber-list">
+          <!-- Dynamically populated via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Department Performance Leaderboard & Village Comparison -->
+      <div class="dept-grid">
+        <div class="dept-perf-box">
+          <h4 style="font-size: 1rem; color: var(--primary-900); margin-bottom: 16px;" data-i18n="deptPerformanceTitle">
+            Department Performance & SLA Breach Index
+          </h4>
+          
+          <div class="dept-bar-item">
+            <div class="dept-bar-labels">
+              <span>Panchayat Raj Engineering Dept (PRED)</span>
+              <span>88% Compliance</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill high" style="width: 88%;"></div></div>
+          </div>
+
+          <div class="dept-bar-item">
+            <div class="dept-bar-labels">
+              <span>Rural Water Supply (RWSS)</span>
+              <span style="color: var(--accent-red);">64% Compliance (1 SLA Breach)</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill danger" style="width: 64%;"></div></div>
+          </div>
+
+          <div class="dept-bar-item">
+            <div class="dept-bar-labels">
+              <span>DISCOM Rural Electricity</span>
+              <span>75% Compliance</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill mid" style="width: 75%;"></div></div>
+          </div>
+
+          <div class="dept-bar-item">
+            <div class="dept-bar-labels">
+              <span>Sanitation & Waste Management</span>
+              <span>96% Compliance</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill high" style="width: 96%;"></div></div>
+          </div>
+        </div>
+
+        <div class="dept-perf-box">
+          <h4 style="font-size: 1rem; color: var(--primary-900); margin-bottom: 16px;" data-i18n="wardBreakdownTitle">
+            Gram Panchayat Comparative Ranking
+          </h4>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--gray-50); border-radius: var(--radius-sm);">
+              <div>
+                <strong style="color: var(--primary-900);">Ramapuram GP</strong>
+                <p style="font-size: 0.75rem; color: var(--gray-500);">3 Active Grievances | 1 Overdue</p>
+              </div>
+              <span class="status-pill status-inprogress">Active Audit</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--gray-50); border-radius: var(--radius-sm);">
+              <div>
+                <strong style="color: var(--primary-900);">Gandhipuram GP</strong>
+                <p style="font-size: 0.75rem; color: var(--gray-500);">2 Active Grievances | 1 Resolved</p>
+              </div>
+              <span class="status-pill status-resolved">92% Compliance</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--gray-50); border-radius: var(--radius-sm);">
+              <div>
+                <strong style="color: var(--primary-900);">Krishnapuram GP</strong>
+                <p style="font-size: 0.75rem; color: var(--gray-500);">1 Active Grievance | Collector Escalated</p>
+              </div>
+              <span class="status-pill status-escalated">Taskforce Deployed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 5: PUBLIC VILLAGE TRANSPARENCY PAGE
+         ==================================================================== -->
+    <section id="module-transparency" class="module-view">
+      <article class="transparency-hero">
+        <h2 data-i18n="transparencyTitle">Palle Praja Public Transparency Portal</h2>
+        <p data-i18n="transparencySubtitle">Open civic data for Ramapuram Gram Panchayat. 100% accountable, zero citizen data exposure.</p>
+      </article>
+
+      <!-- Transparency Metric Counters -->
+      <div class="stats-strip" id="transparency-stats-strip">
+        <div class="stat-box">
+          <div class="stat-icon green"><i class="fa-solid fa-bullseye"></i></div>
+          <div class="stat-data">
+            <h4 id="trans-stat-total">6</h4>
+            <p data-i18n="metricTotalGrievances">Total Grievances Registered</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon blue"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="stat-data">
+            <h4 id="trans-stat-resolved">1</h4>
+            <p data-i18n="metricResolvedCount">Successfully Resolved</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon gold"><i class="fa-solid fa-wrench"></i></div>
+          <div class="stat-data">
+            <h4 id="trans-stat-pending">4</h4>
+            <p data-i18n="metricPendingCount">Under Active Redressal</p>
+          </div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-icon purple"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div class="stat-data">
+            <h4 id="trans-stat-overdue">1</h4>
+            <p data-i18n="metricOverdueCount">Overdue Beyond SLA</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sector Distribution & Recent Anonymized Public Log -->
+      <div class="dept-grid">
+        <div class="dept-perf-box">
+          <h4 style="font-size: 1rem; color: var(--primary-900); margin-bottom: 16px;" data-i18n="catBreakdownTitle">
+            Grievance Distribution by Sector
+          </h4>
+          <div id="transparency-category-bars">
+            <!-- Dynamically populated via JavaScript -->
+          </div>
+        </div>
+
+        <div class="dept-perf-box">
+          <h4 style="font-size: 1rem; color: var(--primary-900); margin-bottom: 16px;" data-i18n="recentPublicLogTitle">
+            Recent Anonymized Redressal Audits (Public Feed)
+          </h4>
+          <div id="transparency-public-feed" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Dynamically populated via JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       MODALS & ACTION DRAWERS
+       ==================================================================== -->
+
+  <!-- Modal 1: Submission Success Modal -->
+  <div class="modal-overlay" id="modal-success">
+    <div class="modal-dialog" style="max-width: 520px; text-align: center;">
+      <div class="modal-body" style="padding: 36px 30px; align-items: center;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--primary-50); color: var(--primary-600); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 12px;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h3 data-i18n="modalSuccessTitle" style="font-size: 1.35rem; color: var(--primary-900);">Grievance Successfully Registered!</h3>
+        <p data-i18n="modalSuccessSubtitle" style="font-size: 0.88rem; color: var(--gray-500); margin-top: 4px;">
+          Your voice has been recorded in the Grama Sachivalayam Registry
+        </p>
+
+        <!-- Unique ID Badge & Copy -->
+        <div style="background: var(--gray-50); border: 2px dashed var(--primary-300); border-radius: var(--radius-md); padding: 14px 20px; margin: 18px 0; width: 100%;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase;" data-i18n="lblComplaintId">
+            GRIEVANCE TRACKING ID
+          </div>
+          <div id="success-modal-id" style="font-size: 1.4rem; font-weight: 800; font-family: monospace; color: var(--primary-800); margin: 4px 0;">
+            PP-2025-RD-XXXX
+          </div>
+          <button type="button" class="btn-dash-outline" style="padding: 4px 12px; font-size: 0.75rem;" onclick="app.copySuccessId()">
+            <i class="fa-regular fa-copy"></i>
+            <span id="copy-btn-text" data-i18n="copyId">Copy ID</span>
+          </button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.82rem; background: var(--primary-50); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 18px;">
+          <span style="color: var(--primary-800); font-weight: 600;" data-i18n="lblAssignedSla">Statutory SLA Target:</span>
+          <strong style="color: var(--primary-900);" data-i18n="slaTargetHours">Within 72 Hours</strong>
+        </div>
+
+        <div style="display: flex; gap: 12px; width: 100%;">
+          <button type="button" class="btn-dash-primary" style="flex: 1; justify-content: center;" onclick="app.trackJustSubmitted()">
+            <i class="fa-solid fa-location-crosshairs"></i>
+            <span data-i18n="btnTrackNow">Track Grievance Now</span>
+          </button>
+          <button type="button" class="btn-dash-outline" onclick="app.closeModal('modal-success')">
+            <span data-i18n="btnClose">Close</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Official Action Console Modal -->
+  <div class="modal-overlay" id="modal-official-action">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 data-i18n="drawerTitle">Official Action & Dispatch Console</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('modal-official-action')">&times;</button>
+      </div>
+      <div class="modal-body" id="official-action-modal-body">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" onclick="app.closeModal('modal-official-action')" data-i18n="cancel">Cancel</button>
+        <button class="btn-dash-primary" onclick="app.saveOfficialAction()" data-i18n="btnSaveChanges">Save Official Updates & Notify Citizen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Higher Authority Escalation Modal -->
+  <div class="modal-overlay" id="modal-escalate">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="modal-header" style="background: #fef2f2; border-bottom-color: #fecaca;">
+        <h3 style="color: var(--accent-red);" data-i18n="escalateModalTitle">Issue District Collector Escalation Mandate</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('modal-escalate')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: #fee2e2; border-left: 4px solid var(--accent-red); padding: 12px 16px; border-radius: var(--radius-sm); font-size: 0.85rem; color: #991b1b;">
+          <strong data-i18n="alert">Alert:</strong>
+          <span data-i18n="escalateConfirmMsg">You are issuing an emergency executive mandate under Section 42 of Panchayati Raj Act. This will flag the department head with critical priority.</span>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label style="font-weight: 700; color: var(--gray-800);" data-i18n="escalateReasonLabel">Collectorate Directive / Executive Order:</label>
+          <textarea id="escalate-directive-text" class="form-textarea" style="min-height: 90px; border-color: #fca5a5;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" onclick="app.closeModal('modal-escalate')" data-i18n="cancel">Cancel</button>
+        <button class="btn-escalate-action" onclick="app.confirmEscalateAction()">
+          <i class="fa-solid fa-gavel"></i>
+          <span data-i18n="btnConfirmEscalate">Dispatch Collector Escalation Order</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Citizen Verification & Star Rating Modal -->
+  <div class="modal-overlay" id="modal-feedback">
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 data-i18n="feedbackModalTitle">Rate Resolution Quality</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('modal-feedback')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--gray-600);" data-i18n="verificationSubtitle">
+          Is your problem genuinely resolved? Your feedback directly impacts official accountability.
+        </p>
+        <div style="text-align: center; margin: 16px 0;">
+          <div style="font-size: 0.82rem; font-weight: 700; color: var(--gray-700); margin-bottom: 8px;" data-i18n="lblRating">Overall Satisfaction Rating:</div>
+          <div id="star-rating-row" style="font-size: 2rem; color: var(--accent-gold); cursor: pointer;">
+            <i class="fa-solid fa-star" onclick="app.setRating(1)"></i>
+            <i class="fa-solid fa-star" onclick="app.setRating(2)"></i>
+            <i class="fa-solid fa-star" onclick="app.setRating(3)"></i>
+            <i class="fa-solid fa-star" onclick="app.setRating(4)"></i>
+            <i class="fa-solid fa-star" onclick="app.setRating(5)"></i>
+          </div>
+        </div>
+        <div class="form-group">
+          <textarea id="citizen-feedback-text" class="form-textarea" 
+            data-i18n-placeholder="feedbackPlaceholder"
+            placeholder="Share your experience with Grama Sachivalayam response..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" onclick="app.closeModal('modal-feedback')" data-i18n="cancel">Cancel</button>
+        <button class="btn-dash-primary" onclick="app.submitCitizenRating()" data-i18n="btnSubmitFeedback">Submit Citizen Rating</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Citizen Reopen Grievance Modal -->
+  <div class="modal-overlay" id="modal-reopen">
+    <div class="modal-dialog" style="max-width: 540px;">
+      <div class="modal-header" style="background: #fff1f2; border-bottom-color: #fecdd3;">
+        <h3 style="color: #be123c;" data-i18n="reopenModalTitle">Reopen Grievance for Re-investigation</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('modal-reopen')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--gray-700); margin-bottom: 12px;" data-i18n="reopenReasonPrompt">
+          Please explain why the resolution was unsatisfactory (e.g., poor quality patch, pothole remained):
+        </p>
+        <div class="form-group">
+          <textarea id="reopen-reason-input" class="form-textarea" style="min-height: 100px; border-color: #fda4af;"
+            placeholder="e.g. Only sand was poured over the pothole, it got washed away with rain today. The road is still hazardous."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" onclick="app.closeModal('modal-reopen')" data-i18n="cancel">Cancel</button>
+        <button class="btn-dash-primary" style="background: #be123c;" onclick="app.confirmReopenGrievance()" data-i18n="btnConfirmReopen">
+          Submit Reopen Request
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demo 15-Step Hackathon Walkthrough Drawer -->
+  <aside class="demo-drawer" id="demo-walkthrough-drawer" aria-label="Demo Instructions Drawer">
+    <div class="demo-drawer-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-route"></i>
+        <h4 style="color: #ffffff; font-size: 1rem;">15-Step Demo Script</h4>
+      </div>
+      <button class="modal-close-btn" style="color: #ffffff;" onclick="app.toggleWalkthroughDrawer()">&times;</button>
+    </div>
+    <div class="demo-drawer-body">
+      <p style="font-size: 0.82rem; color: var(--gray-500); margin-bottom: 16px;">
+        Follow this exact sequence to demonstrate the end-to-end connected workflow to hackathon judges:
+      </p>
+
+      <div class="walkthrough-step-item">
+        <h5>1-2. Language & Voice Input</h5>
+        <p>Switch between English & తెలుగు. Click mic or choose "Damaged Road" preset.</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>3-5. Register & Submit</h5>
+        <p>Click "Damaged Road" sample photo. Fill location & submit complaint.</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>6. Unique Complaint ID</h5>
+        <p>Observe generated ID (e.g., PP-2025-RD-XXXX) & SLA target.</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>7-8. Official Dashboard</h5>
+        <p>Switch role to "Grama Sachivalayam". Locate the submitted complaint.</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>9-10. Assign & In Progress</h5>
+        <p>Assign to Panchayat Raj Engineering Dept & transition status to "In Progress".</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>11. Live Citizen Tracking</h5>
+        <p>Switch back to Villager Portal -> Track Grievance. Notice the live timeline update!</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>12-13. Resolution Proof Upload</h5>
+        <p>In Official Dashboard, upload "Repaved Road" resolution photo & mark "Resolved".</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>14. Citizen Verification / Reopen</h5>
+        <p>In Villager Portal, inspect Before/After photos. Click "Verify & Rate" OR "Reopen Grievance".</p>
+      </div>
+      <div class="walkthrough-step-item">
+        <h5>15. Higher Authority Oversight</h5>
+        <p>Switch to "District Authority". Observe Overdue SLA detection & Collector Escalation action!</p>
+      </div>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <button class="btn-dash-primary" style="width: 100%; justify-content: center;" onclick="app.toggleWalkthroughDrawer()">
+          Got It, Start Demo!
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- Application Footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <div>
+        <strong>Palle Praja (పల్లె ప్రజా)</strong> &copy; 2026 – Smart Village Grievance Redressal System.
+      </div>
+      <div style="display: flex; gap: 16px;">
+        <span>Andhra Pradesh & Telangana Rural Development Prototype</span>
+        <span>•</span>
+        <span>Built for Hackathon Selection</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Scripts -->
+  <script src="js/i18n.js"></script>
+  <script src="js/dataStore.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
