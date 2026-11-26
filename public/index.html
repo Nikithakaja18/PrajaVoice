@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Palle Praja – Smart Village Grievance Redressal System | పల్లె ప్రజా</title>
-  <meta name="description" content="Palle Praja is a voice-first, transparent village grievance redressal platform connecting rural citizens, village officials, and higher authorities.">
+  <title>Praja Voice – Smart Village Grievance Redressal System</title>
+  <meta name="description" content="Praja Voice is a voice-first, transparent village grievance redressal platform connecting rural citizens, village officials, and higher authorities.">
   
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -14,14 +14,9 @@
 </head>
 <body>
 
-  <!-- Universal Persistent Demo Switcher Bar (For Hackathon Judges) -->
-  <aside class="demo-top-bar" aria-label="Hackathon Demo Bar">
+  <!-- Persistent Navigation -->
+  <aside class="demo-top-bar" aria-label="Praja Voice navigation">
     <div class="demo-left-section">
-      <div class="demo-badge-pill">
-        <i class="fa-solid fa-bolt"></i>
-        <span data-i18n="demoBadge">HACKATHON DEMO MODE</span>
-      </div>
-
       <!-- Quick Role Switcher Buttons -->
       <nav class="role-switcher-group" aria-label="Switch User Persona">
         <button class="role-btn active" id="btn-role-citizen" onclick="app.switchRole('citizen')">
@@ -50,16 +45,20 @@
         <button class="lang-btn" id="lang-te-btn" onclick="i18n.setLanguage('te')">తెలుగు</button>
       </div>
 
-      <!-- Demo Walkthrough Guide Button -->
-      <button class="btn-header-action btn-guide" onclick="app.toggleWalkthroughDrawer()" title="View 15-step Hackathon Scenario Walkthrough">
+      <!-- Workflow Guide Button -->
+      <button class="btn-header-action btn-guide" onclick="app.toggleWalkthroughDrawer()" title="View the 15-step workflow guide">
         <i class="fa-solid fa-list-check"></i>
-        <span data-i18n="walkthroughGuide">Demo Guide</span>
+        <span data-i18n="workflowGuide">Workflow Guide</span>
       </button>
 
-      <!-- Reset Sample Data Button -->
-      <button class="btn-header-action btn-reset" onclick="app.confirmResetData()" title="Reset to original sample data">
+      <!-- Reset Data Button -->
+      <button class="btn-header-action btn-reset" onclick="app.confirmResetData()" title="Restore complaint data to its initial state">
         <i class="fa-solid fa-arrow-rotate-left"></i>
-        <span data-i18n="resetDemo">Reset Data</span>
+        <span data-i18n="resetSampleData">Reset Data</span>
+      </button>
+      <button class="btn-header-action" onclick="app.openOfficerRegistrationModal()">
+        <i class="fa-solid fa-user-shield"></i>
+        <span>Admin Account Management</span>
       </button>
     </div>
   </aside>
@@ -72,7 +71,7 @@
           <i class="fa-solid fa-seedling"></i>
         </div>
         <div class="brand-text">
-          <h1 data-i18n="appName">Palle Praja</h1>
+          <h1 data-i18n="appName">Praja Voice</h1>
           <p data-i18n="tagline">Mee Ooru, Mee Hakku, Mee Swaram</p>
         </div>
       </div>
@@ -180,7 +179,7 @@
 
         <!-- 3 Simple Steps Section -->
         <div class="section-header">
-          <h3 data-i18n="howItWorksTitle">How Palle Praja Works in 3 Simple Steps</h3>
+          <h3 data-i18n="howItWorksTitle">How Praja Voice Works in 3 Simple Steps</h3>
         </div>
         <div class="steps-grid">
           <div class="step-card">
@@ -327,11 +326,11 @@
                   <p class="mic-status-label" id="mic-status-text" data-i18n="micButtonPrompt">Click to Speak in Telugu or English</p>
                 </div>
 
-                <!-- Quick Simulation Presets for Hackathon Judges -->
+                <!-- Quick Voice Input Presets -->
                 <div class="voice-presets-container">
                   <div class="voice-presets-title">
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span data-i18n="quickVoicePresets">Quick Hackathon Voice Simulation Presets:</span>
+                    <span data-i18n="quickVoicePresets">Quick Voice Input Presets:</span>
                   </div>
                   <div class="presets-pill-list">
                     <button type="button" class="preset-chip" onclick="app.useVoicePreset('roads')">
@@ -371,9 +370,9 @@
                 <span data-i18n="photoSectionTitle">3. Upload Photo Evidence</span>
               </div>
               <div class="photo-uploader" onclick="document.getElementById('photo-file-input').click()">
-                <input type="file" id="photo-file-input" accept="image/*" style="display: none;" onchange="app.handlePhotoUpload(event)">
+                <input type="file" id="photo-file-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display: none;" onchange="app.handlePhotoUpload(event)">
                 <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--primary-600); margin-bottom: 8px;"></i>
-                <p data-i18n="photoUploadHint">Drag and drop or select an image file</p>
+                <p data-i18n="photoUploadHint">Select an original JPEG, PNG, or WebP photo (maximum 5 MB).</p>
                 <div class="photo-preview-wrap" id="photo-preview-box" style="display: none;">
                   <img id="photo-preview-img" class="photo-preview-img" src="" alt="Defect Preview">
                   <button type="button" class="btn-remove-photo" onclick="app.removePhoto(event)">
@@ -382,22 +381,6 @@
                 </div>
               </div>
 
-              <!-- Quick Sample Photo selector for seamless hackathon testing -->
-              <div class="sample-photos-row">
-                <span style="font-size: 0.75rem; color: var(--gray-500); align-self: center;" data-i18n="photoQuickPick">Use realistic sample photo:</span>
-                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('pothole')">
-                  🛣️ <span data-i18n="photoPothole">Damaged Road</span>
-                </button>
-                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('pipe')">
-                  💧 <span data-i18n="photoLeak">Water Leak</span>
-                </button>
-                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('sparks')">
-                  ⚡ <span data-i18n="photoSparks">Transformer</span>
-                </button>
-                <button type="button" class="sample-photo-btn" onclick="app.pickSamplePhoto('drain')">
-                  🚯 <span data-i18n="photoDrain">Clogged Drain</span>
-                </button>
-              </div>
             </div>
 
             <!-- 4. Location Details & GPS -->
@@ -482,13 +465,13 @@
           </button>
         </div>
 
-        <!-- Quick Complaint ID Chips for rapid demo navigation -->
+        <!-- Quick Complaint ID Chips -->
         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; align-items: center;">
-          <span style="font-size: 0.78rem; font-weight: 700; color: var(--gray-500);">Quick Demo Grievances:</span>
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--gray-500);">Quick Track:</span>
           <button class="id-badge" onclick="app.trackDirectId('PP-2025-RD-1042')">PP-2025-RD-1042 (In Progress Road)</button>
           <button class="id-badge" onclick="app.trackDirectId('PP-2025-WT-2081')">PP-2025-WT-2081 (Overdue Water)</button>
           <button class="id-badge" onclick="app.trackDirectId('PP-2025-EL-3119')">PP-2025-EL-3119 (Escalated Power)</button>
-          <button class="id-badge" onclick="app.trackDirectId('PP-2025-SN-5120')">PP-2025-SN-5120 (Resolved Waste)</button>
+          <button class="id-badge" onclick="app.trackDirectId('PP-2025-SN-5120')">PP-2025-SN-5120 (In Progress Waste)</button>
         </div>
 
         <!-- Tracking Dossier Card -->
@@ -502,6 +485,20 @@
          MODULE B: VILLAGE OFFICIAL DASHBOARD
          ==================================================================== -->
     <section id="module-official" class="module-view">
+      <section id="grama-login-panel" class="portal-login-card" aria-labelledby="grama-login-title">
+        <h2 id="grama-login-title">Grama Sachivalayam Sign In</h2>
+        <p>Sign in with an active Grama Sachivalayam account to open the village operations dashboard.</p>
+        <form onsubmit="event.preventDefault(); app.loginPortal('GRAMA_SACHIVALAYAM')">
+          <label for="grama-username">Username</label>
+          <input id="grama-username" class="form-input" type="text" autocomplete="username" required>
+          <label for="grama-password">Password</label>
+          <input id="grama-password" class="form-input" type="password" autocomplete="current-password" required>
+          <p id="grama-login-error" class="portal-login-error" role="alert" aria-live="assertive"></p>
+          <button class="btn-dash-primary" type="submit">Sign In</button>
+          <button id="grama-login-logout" class="btn-dash-outline" type="button" onclick="app.logoutPortal()" hidden>Sign out of current account</button>
+        </form>
+      </section>
+      <div id="grama-dashboard-content" hidden>
       <!-- Official Ops Banner -->
       <div class="official-ops-bar">
         <div class="official-ops-title">
@@ -509,7 +506,8 @@
           <p data-i18n="officialSubtitle">Gram Panchayat Complaints Management & Field Dispatch Console</p>
         </div>
         <div style="display: flex; gap: 10px;">
-          <span class="persona-tag" data-i18n="personaOfficial">V. Srikanth (Panchayat Sec.)</span>
+          <span class="persona-tag" id="official-session-user"></span>
+          <button class="btn-dash-outline" onclick="app.logoutPortal()">Log Out</button>
           <button class="btn-dash-outline" onclick="app.refreshOfficialData()">
             <i class="fa-solid fa-arrows-rotate"></i> Refresh
           </button>
@@ -574,8 +572,21 @@
           <option value="overdue">Overdue SLA (గడువు దాటినవి)</option>
           <option value="Escalated">Escalated (ఎస్కలేట్ అయినవి)</option>
           <option value="Reopened">Reopened (మళ్లీ ఓపెన్)</option>
+          <option value="DISTRICT_ESCALATED">District return (24h)</option>
+          <option value="URGENT_ESCALATION">Legacy district return</option>
         </select>
       </div>
+
+        <section class="urgent-escalations-card" aria-labelledby="official-urgent-title">
+          <div class="chamber-header">
+            <h3 id="official-urgent-title"><i class="fa-solid fa-bolt"></i> Urgent Escalations from District Authority</h3>
+            <span class="status-pill status-urgent" id="official-urgent-count">Authentication required</span>
+          </div>
+          <p>District-returned complaints require action before their displayed deadline.</p>
+          <div class="urgent-escalations-list" id="official-urgent-list" aria-live="polite">
+            District returns assigned to this Grama Sachivalayam will appear here.
+          </div>
+        </section>
 
       <!-- Official Complaints Table -->
       <div class="table-responsive-box">
@@ -596,12 +607,27 @@
           </tbody>
         </table>
       </div>
+      </div>
     </section>
 
     <!-- ====================================================================
          MODULE C: HIGHER AUTHORITY DASHBOARD
          ==================================================================== -->
     <section id="module-authority" class="module-view">
+      <section id="district-login-panel" class="portal-login-card" aria-labelledby="district-login-title">
+        <h2 id="district-login-title">District Authority Sign In</h2>
+        <p>Sign in with an active District Authority account to open the district oversight dashboard.</p>
+        <form onsubmit="event.preventDefault(); app.loginPortal('DISTRICT_AUTHORITY')">
+          <label for="district-username">Username</label>
+          <input id="district-username" class="form-input" type="text" autocomplete="username" required>
+          <label for="district-password">Password</label>
+          <input id="district-password" class="form-input" type="password" autocomplete="current-password" required>
+          <p id="district-login-error" class="portal-login-error" role="alert" aria-live="assertive"></p>
+          <button class="btn-dash-primary" type="submit">Sign In</button>
+          <button id="district-login-logout" class="btn-dash-outline" type="button" onclick="app.logoutPortal()" hidden>Sign out of current account</button>
+        </form>
+      </section>
+      <div id="district-dashboard-content" hidden>
       <!-- Authority Executive Hero -->
       <article class="authority-hero">
         <div class="authority-tag">
@@ -615,26 +641,71 @@
       <!-- KPI Executive Scorecards -->
       <div class="kpi-row">
         <div class="kpi-card">
-          <div class="kpi-label" data-i18n="kpiIndex">Grievance Redressal Index</div>
-          <div class="kpi-value" style="color: var(--primary-600);">91.8%</div>
-          <div class="kpi-subtext" data-i18n="kpiIndexDesc">Based on citizen satisfaction & speed</div>
+          <div class="kpi-label">Total Complaints Received</div>
+          <div class="kpi-value" id="district-total-count">—</div>
+          <div class="kpi-subtext">All records in the complaint database</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label" data-i18n="kpiCompliance">Statutory SLA Adherence</div>
-          <div class="kpi-value" style="color: var(--accent-blue);" id="auth-sla-stat">83.3%</div>
-          <div class="kpi-subtext" data-i18n="kpiComplianceDesc">Complaints resolved within 72 hrs</div>
+          <div class="kpi-label">Pending District Review</div>
+          <div class="kpi-value" style="color: var(--accent-blue);" id="district-pending-count">—</div>
+          <div class="kpi-subtext">Forwarded and awaiting District action</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label" data-i18n="kpiAvgDays">Avg Turnaround</div>
-          <div class="kpi-value" style="color: var(--accent-gold-dark);">2.8 <span style="font-size: 1rem;">Days</span></div>
-          <div class="kpi-subtext" data-i18n="kpiAvgDaysDesc">From registration to resolution</div>
+          <div class="kpi-label">Escalated to Grama Sachivalayam</div>
+          <div class="kpi-value" style="color: var(--accent-gold-dark);" id="district-escalated-count">—</div>
+          <div class="kpi-subtext">Returned with a 24-hour action deadline</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label" data-i18n="kpiOverdueBreach">Critical SLA Breaches</div>
-          <div class="kpi-value" style="color: var(--accent-red);" id="auth-breach-count">1</div>
-          <div class="kpi-subtext" data-i18n="kpiOverdueBreachDesc">Requires Collector intervention</div>
+          <div class="kpi-label">Resolved</div>
+          <div class="kpi-value" style="color: var(--primary-600);" id="district-resolved-count">—</div>
+          <div class="kpi-subtext">Complaints marked resolved</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Overdue</div>
+          <div class="kpi-value" style="color: var(--accent-red);" id="auth-breach-count">—</div>
+          <div class="kpi-subtext">Open complaints past their active deadline</div>
         </div>
       </div>
+
+      <section class="district-review-card" aria-labelledby="district-review-title">
+        <div class="chamber-header">
+          <h3 id="district-review-title"><i class="fa-solid fa-building-shield"></i> District Authority Pending Review</h3>
+          <span class="status-pill status-forwarded" id="district-review-count">Sign in required</span>
+          <span class="persona-tag" id="district-session-user"></span>
+          <button class="btn-dash-outline" onclick="app.logoutPortal()">Log Out</button>
+        </div>
+        <p>Forwarded complaints are available only to the authenticated District Authority account.</p>
+        <div class="district-review-list" id="district-review-list" aria-live="polite">
+          Pending district reviews will appear here.
+        </div>
+      </section>
+
+      <section class="district-review-card" aria-labelledby="district-complaints-title">
+        <div class="chamber-header">
+          <h3 id="district-complaints-title">All Complaints Forwarded to District</h3>
+        </div>
+        <div class="table-responsive-box">
+          <table class="gov-table">
+            <thead>
+              <tr>
+                <th>Complaint ID</th>
+                <th>Complaint Title</th>
+                <th>Village & Location</th>
+                <th>Department</th>
+                <th>Priority</th>
+                <th>Complaint Filed (IST)</th>
+                <th>Forwarded (IST)</th>
+                <th>Assigned Officer</th>
+                <th>Current Status & Deadline</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="district-complaints-tbody">
+              <tr><td colspan="10">District submissions will appear here after sign in.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- Overdue Escalation Chamber -->
       <div class="escalation-chamber-card">
@@ -725,6 +796,7 @@
           </div>
         </div>
       </div>
+      </div>
     </section>
 
     <!-- ====================================================================
@@ -732,7 +804,7 @@
          ==================================================================== -->
     <section id="module-transparency" class="module-view">
       <article class="transparency-hero">
-        <h2 data-i18n="transparencyTitle">Palle Praja Public Transparency Portal</h2>
+        <h2 data-i18n="transparencyTitle">Praja Voice Public Transparency Portal</h2>
         <p data-i18n="transparencySubtitle">Open civic data for Ramapuram Gram Panchayat. 100% accountable, zero citizen data exposure.</p>
       </article>
 
@@ -857,7 +929,129 @@
     </div>
   </div>
 
-  <!-- Modal 3: Higher Authority Escalation Modal -->
+  <div class="modal-overlay" id="modal-officer-registration">
+    <div class="modal-dialog" style="max-width: 560px;">
+      <div class="modal-header">
+        <h3>Manage Government Accounts</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('modal-officer-registration')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--gray-600); margin-bottom: 14px;">
+          An active ADMIN account is required. There is no public officer registration.
+        </p>
+        <div class="form-group">
+          <label for="register-admin-username" data-i18n="registerAdminUsername">ADMIN username</label>
+          <input type="text" id="register-admin-username" class="form-input" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label for="register-admin-password" data-i18n="registerAdminPassword">ADMIN password</label>
+          <input type="password" id="register-admin-password" class="form-input" autocomplete="current-password" required>
+        </div>
+        <div class="form-group">
+          <label for="register-officer-username">New account username</label>
+          <input type="text" id="register-officer-username" class="form-input" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="register-officer-password">New account password (minimum 12 characters)</label>
+          <input type="password" id="register-officer-password" class="form-input" autocomplete="new-password" minlength="12" required>
+        </div>
+        <div class="form-group">
+          <label for="register-officer-role">Assigned role</label>
+          <select id="register-officer-role" class="form-select">
+            <option value="GRAMA_SACHIVALAYAM">Grama Sachivalayam</option>
+            <option value="DISTRICT_AUTHORITY">District Authority</option>
+            <option value="OFFICER">Department Officer</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="register-officer-active">Account status</label>
+          <select id="register-officer-active" class="form-select">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="register-officer-department" data-i18n="officerDepartment">Department</label>
+          <select id="register-officer-department" class="form-select">
+            <option value="Panchayat Raj Engineering Dept (PRED)">Panchayat Raj Engineering Dept (PRED)</option>
+            <option value="Rural Water Supply & Sanitation (RWSS)">Rural Water Supply & Sanitation (RWSS)</option>
+            <option value="APCPDCL / TSSPDCL Rural Operations">APCPDCL / TSSPDCL Rural Operations</option>
+            <option value="Panchayat Sanitation & Public Health">Panchayat Sanitation & Public Health</option>
+            <option value="Revenue & Land Records Wing">Revenue & Land Records Wing</option>
+          </select>
+        </div>
+        <button type="button" class="btn-dash-outline" onclick="app.loadManagedAccounts()">Load / Refresh Accounts</button>
+        <div class="form-group">
+          <label for="reset-account-password">New password for selected account</label>
+          <input type="password" id="reset-account-password" class="form-input" autocomplete="new-password" minlength="12">
+        </div>
+        <div id="managed-account-list" aria-live="polite"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" onclick="app.closeModal('modal-officer-registration')">Cancel</button>
+        <button class="btn-dash-primary" onclick="app.registerOfficerFromAdmin()">Create Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: District Authority Order Details -->
+  <div class="modal-overlay" id="modal-order-details">
+    <div class="modal-dialog" style="max-width: 760px;" role="dialog" aria-modal="true" aria-labelledby="order-details-title">
+      <div class="modal-header">
+        <h3 id="order-details-title">District Authority Order Details</h3>
+        <button class="modal-close-btn" aria-label="Close order details" onclick="app.closeModal('modal-order-details')">&times;</button>
+      </div>
+      <div class="modal-body" id="order-details-content" aria-live="polite">
+        <p>Choose an order to view its details.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" onclick="app.closeModal('modal-order-details')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-return-to-village">
+    <div class="modal-dialog" style="max-width: 620px;" role="dialog" aria-modal="true" aria-labelledby="return-to-village-title">
+      <div class="modal-header">
+        <h3 id="return-to-village-title">Escalate to Grama Sachivalayam</h3>
+        <button class="modal-close-btn" aria-label="Close return instructions" onclick="app.closeModal('modal-return-to-village')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>The authenticated District Authority will return this complaint to Grama Sachivalayam with a 24-hour action deadline.</p>
+        <div class="form-group">
+          <label for="district-return-instructions">District Authority instructions</label>
+          <textarea id="district-return-instructions" class="form-textarea" maxlength="4000" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" type="button" onclick="app.closeModal('modal-return-to-village')">Cancel</button>
+        <button class="btn-escalate-action" type="button" onclick="app.confirmReturnToVillage()">Escalate to Grama Sachivalayam</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-forward-to-district">
+    <div class="modal-dialog" style="max-width: 620px;" role="dialog" aria-modal="true" aria-labelledby="forward-to-district-title">
+      <div class="modal-header">
+        <h3 id="forward-to-district-title">Forward to District Authority</h3>
+        <button class="modal-close-btn" aria-label="Close forwarding form" onclick="app.closeModal('modal-forward-to-district')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Record the Grama Sachivalayam review reason. The actual forwarding time will be recorded when submitted.</p>
+        <div class="form-group">
+          <label for="district-forward-reason">Reason for District review</label>
+          <textarea id="district-forward-reason" class="form-textarea" maxlength="4000" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-dash-outline" type="button" onclick="app.closeModal('modal-forward-to-district')">Cancel</button>
+        <button class="btn-dash-primary" type="button" onclick="app.confirmForwardToDistrict()">Forward for Review</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Higher Authority Escalation Modal -->
   <div class="modal-overlay" id="modal-escalate">
     <div class="modal-dialog" style="max-width: 600px;">
       <div class="modal-header" style="background: #fef2f2; border-bottom-color: #fecaca;">
@@ -873,6 +1067,16 @@
         <div class="form-group" style="margin-top: 14px;">
           <label style="font-weight: 700; color: var(--gray-800);" data-i18n="escalateReasonLabel">Collectorate Directive / Executive Order:</label>
           <textarea id="escalate-directive-text" class="form-textarea" style="min-height: 90px; border-color: #fca5a5;"></textarea>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="admin-username" data-i18n="adminUsername">Administrator username</label>
+            <input type="text" id="admin-username" class="form-input" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label for="admin-password" data-i18n="adminPassword">Administrator password</label>
+            <input type="password" id="admin-password" class="form-input" autocomplete="current-password" required>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -944,18 +1148,18 @@
     </div>
   </div>
 
-  <!-- Demo 15-Step Hackathon Walkthrough Drawer -->
-  <aside class="demo-drawer" id="demo-walkthrough-drawer" aria-label="Demo Instructions Drawer">
+  <!-- 15-Step Workflow Guide Drawer -->
+  <aside class="demo-drawer" id="demo-walkthrough-drawer" aria-label="Workflow Guide Drawer">
     <div class="demo-drawer-header">
       <div style="display: flex; align-items: center; gap: 8px;">
         <i class="fa-solid fa-route"></i>
-        <h4 style="color: #ffffff; font-size: 1rem;">15-Step Demo Script</h4>
+        <h4 style="color: #ffffff; font-size: 1rem;">15-Step Workflow Guide</h4>
       </div>
       <button class="modal-close-btn" style="color: #ffffff;" onclick="app.toggleWalkthroughDrawer()">&times;</button>
     </div>
     <div class="demo-drawer-body">
       <p style="font-size: 0.82rem; color: var(--gray-500); margin-bottom: 16px;">
-        Follow this exact sequence to demonstrate the end-to-end connected workflow to hackathon judges:
+        Use this guide to explore the end-to-end connected workflow:
       </p>
 
       <div class="walkthrough-step-item">
@@ -964,7 +1168,7 @@
       </div>
       <div class="walkthrough-step-item">
         <h5>3-5. Register & Submit</h5>
-        <p>Click "Damaged Road" sample photo. Fill location & submit complaint.</p>
+        <p>Optionally upload an original JPEG, PNG, or WebP complaint photo, then fill the location and submit.</p>
       </div>
       <div class="walkthrough-step-item">
         <h5>6. Unique Complaint ID</h5>
@@ -976,7 +1180,7 @@
       </div>
       <div class="walkthrough-step-item">
         <h5>9-10. Assign & In Progress</h5>
-        <p>Assign to Panchayat Raj Engineering Dept & transition status to "In Progress".</p>
+        <p>Sign in with a Grama Sachivalayam account, assign the complaint, add field notes, and upload inspection evidence.</p>
       </div>
       <div class="walkthrough-step-item">
         <h5>11. Live Citizen Tracking</h5>
@@ -984,7 +1188,7 @@
       </div>
       <div class="walkthrough-step-item">
         <h5>12-13. Resolution Proof Upload</h5>
-        <p>In Official Dashboard, upload "Repaved Road" resolution photo & mark "Resolved".</p>
+        <p>In the Grama Sachivalayam dashboard, upload a real repair photo, then mark the complaint "Resolved".</p>
       </div>
       <div class="walkthrough-step-item">
         <h5>14. Citizen Verification / Reopen</h5>
@@ -992,12 +1196,12 @@
       </div>
       <div class="walkthrough-step-item">
         <h5>15. Higher Authority Oversight</h5>
-        <p>Switch to "District Authority". Observe Overdue SLA detection & Collector Escalation action!</p>
+        <p>Switch to "District Authority", sign in with a District Authority account, review the school-drainage referral, and return it with a 24-hour action deadline. Sign in with the Grama Sachivalayam account to find and address the urgent return.</p>
       </div>
 
       <div style="margin-top: 20px; text-align: center;">
         <button class="btn-dash-primary" style="width: 100%; justify-content: center;" onclick="app.toggleWalkthroughDrawer()">
-          Got It, Start Demo!
+          Got It
         </button>
       </div>
     </div>
@@ -1010,12 +1214,11 @@
   <footer class="app-footer">
     <div class="footer-content">
       <div>
-        <strong>Palle Praja (పల్లె ప్రజా)</strong> &copy; 2026 – Smart Village Grievance Redressal System.
+        <strong>Praja Voice</strong> &copy; 2026 – Smart Village Grievance Redressal System.
       </div>
       <div style="display: flex; gap: 16px;">
-        <span>Andhra Pradesh & Telangana Rural Development Prototype</span>
+        <span>Andhra Pradesh & Telangana Rural Development</span>
         <span>•</span>
-        <span>Built for Hackathon Selection</span>
       </div>
     </div>
   </footer>

@@ -1,5 +1,5 @@
 /**
- * Palle Praja - Voice First Recognition & Speech Synthesis Module
+ * Praja Voice - Voice First Recognition & Speech Synthesis Module
  * Supports Telugu (te-IN) and Indian English (en-IN) with live waveforms and simulation fallbacks
  */
 

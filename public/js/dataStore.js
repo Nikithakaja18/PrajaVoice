@@ -1,9 +1,11 @@
 /**
- * Palle Praja - Unified Client Data Store & Sync Manager
+ * Praja Voice - Unified Client Data Store & Sync Manager
  * Supports: LocalStorage Persistence + Express REST API Sync + Real-time Custom Events
  */
 
 const STORAGE_KEY = 'pallepraja_complaints_v1';
+const SAMPLE_COMPLAINT_CREATED_AT = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+const SAMPLE_COMPLAINT_FORWARDED_AT = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
 // Seed Complaints for pristine demonstration
 const SEED_COMPLAINTS = [
@@ -31,8 +33,7 @@ const SEED_COMPLAINTS = [
     officerContact: '+91 89781 44520',
     priority: 'High',
     isOverdue: false,
-    citizenPhoto: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-    resolutionPhoto: null,
+    evidence: [],
     officialRemarks: 'Inspected on-site with sarpanch. Material requisition for gravel and bitumen filling approved. Road levelling work underway.',
     resolutionRemarks: null,
     citizenFeedback: null,
@@ -41,7 +42,7 @@ const SEED_COMPLAINTS = [
         status: 'Submitted',
         timestamp: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
         actor: 'Citizen Rama Rao',
-        note: 'Grievance submitted via Voice-First Registration with geo-tagged photo.'
+        note: 'Grievance submitted via Voice-First Registration.'
       },
       {
         status: 'Assigned',
@@ -81,8 +82,7 @@ const SEED_COMPLAINTS = [
     officerContact: '+91 94901 88231',
     priority: 'Critical',
     isOverdue: true,
-    citizenPhoto: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80',
-    resolutionPhoto: null,
+    evidence: [],
     officialRemarks: 'Trench digging completed, replacement HDPE pipe coupling awaited from Mandal warehouse.',
     resolutionRemarks: null,
     citizenFeedback: null,
@@ -137,8 +137,7 @@ const SEED_COMPLAINTS = [
     officerContact: '+91 94408 15200',
     priority: 'Critical',
     isOverdue: true,
-    citizenPhoto: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=800&q=80',
-    resolutionPhoto: null,
+    evidence: [],
     officialRemarks: 'Collectorate issued direct intervention order. New transformer dispatched from Divisional Store.',
     resolutionRemarks: null,
     citizenFeedback: null,
@@ -187,8 +186,7 @@ const SEED_COMPLAINTS = [
     officerContact: '+91 88860 99124',
     priority: 'Medium',
     isOverdue: false,
-    citizenPhoto: 'https://images.unsplash.com/photo-1596785236245-5b53d4289069?auto=format&fit=crop&w=800&q=80',
-    resolutionPhoto: null,
+    evidence: [],
     officialRemarks: 'Desilting gang of 5 sanitary workers scheduled for clearance tomorrow 8:00 AM.',
     resolutionRemarks: null,
     citizenFeedback: null,
@@ -197,7 +195,7 @@ const SEED_COMPLAINTS = [
         status: 'Submitted',
         timestamp: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
         actor: 'Citizen Ch. Subbaiah',
-        note: 'Voice grievance submitted with landmark photo.'
+        note: 'Voice grievance submitted by the citizen.'
       },
       {
         status: 'Assigned',
@@ -212,8 +210,8 @@ const SEED_COMPLAINTS = [
     category: 'Sanitation & Waste',
     categoryKey: 'sanitation',
     categoryTe: 'పారిశుధ్యం',
-    title: 'Solid waste dumping at weekly Rythu Bazaar ground cleared',
-    titleTe: 'రైతు బజార్ మైదానంలో పేరుకుపోయిన చెత్తను పూర్తిగా తొలగించారు',
+    title: 'Solid waste dumping at weekly Rythu Bazaar ground',
+    titleTe: 'రైతు బజార్ మైదానంలో పేరుకుపోయిన చెత్త',
     description: 'Rotting vegetable matter and garbage accumulated over two market days. Stray cattle and dogs feeding on waste created health hazards.',
     descriptionTe: 'రైతు బజార్ మైదానంలో చెత్త పేరుకుపోయింది. పందులు, కుక్కలు చేరి దుర్గంధం వస్తోంది.',
     voiceTranscript: 'రైతు బజార్ మైదానంలో చెత్త ఎత్తకపోవడంతో దుర్గంధం వస్తోంది, వ్యాధులు ప్రబలే ప్రమాదం ఉంది.',
@@ -225,23 +223,16 @@ const SEED_COMPLAINTS = [
     gpsCoordinates: '16.5120° N, 80.6380° E',
     createdAt: new Date(Date.now() - 60 * 3600 * 1000).toISOString(),
     slaHours: 48,
-    status: 'Resolved',
+    status: 'In Progress',
     assignedDepartment: 'Panchayat Sanitation & Public Health',
     assignedOfficer: 'K. Tirupathi Rao (Health Inspector)',
     officerContact: '+91 91770 12345',
     priority: 'Medium',
     isOverdue: false,
-    citizenPhoto: 'https://images.unsplash.com/photo-1605600659873-d808a13e4d2a?auto=format&fit=crop&w=800&q=80',
-    resolutionPhoto: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
-    officialRemarks: 'Tractor deployed, 3 metric tonnes of organic waste cleared and composted at Solid Waste Management Shed. Lime powder sprayed for disinfection.',
-    resolutionRemarks: 'Completed on 23rd Nov. Site inspected and certified clean by Ward Member.',
-    citizenFeedback: {
-      rating: 5,
-      comment: 'Thank you Palle Praja and Grama Sachivalayam! The ground was cleaned thoroughly and lime was sprinkled.',
-      commentTe: 'చాలా ధన్యవాదాలు. మైదానం శుభ్రం చేసి సున్నం చల్లారు. సమస్య పరిష్కారమైంది.',
-      verifiedAt: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
-      isSatisfied: true
-    },
+    evidence: [],
+    officialRemarks: 'Site inspection and clearance are pending. Resolution evidence has not been submitted.',
+    resolutionRemarks: null,
+    citizenFeedback: null,
     timeline: [
       {
         status: 'Submitted',
@@ -259,19 +250,7 @@ const SEED_COMPLAINTS = [
         status: 'In Progress',
         timestamp: new Date(Date.now() - 30 * 3600 * 1000).toISOString(),
         actor: 'Health Inspector K. Tirupathi Rao',
-        note: 'Sanitation tractor and team cleared the garbage yard.'
-      },
-      {
-        status: 'Resolved',
-        timestamp: new Date(Date.now() - 16 * 3600 * 1000).toISOString(),
-        actor: 'Panchayat Secretary',
-        note: 'Resolution verified with after-cleanup photo evidence.'
-      },
-      {
-        status: 'Citizen Verified',
-        timestamp: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
-        actor: 'Citizen M. Padmavathi',
-        note: 'Citizen confirmed resolution with 5-star rating.'
+        note: 'Site inspection and clearance are pending.'
       }
     ]
   },
@@ -299,8 +278,7 @@ const SEED_COMPLAINTS = [
     officerContact: null,
     priority: 'High',
     isOverdue: false,
-    citizenPhoto: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=800&q=80',
-    resolutionPhoto: null,
+    evidence: [],
     officialRemarks: null,
     resolutionRemarks: null,
     citizenFeedback: null,
@@ -309,7 +287,57 @@ const SEED_COMPLAINTS = [
         status: 'Submitted',
         timestamp: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
         actor: 'Citizen S. Ramana Murthy',
-        note: 'Fresh complaint registered via Palle Praja voice portal.'
+        note: 'Fresh complaint registered via Praja Voice.'
+      }
+    ]
+  },
+  {
+    id: 'PP-2026-SN-9001',
+    category: 'Sanitation and Drainage',
+    categoryKey: 'sanitation',
+    categoryTe: 'పారిశుధ్యం మరియు మురుగు',
+    title: 'Overflowing Drainage and Sewage Near Village School',
+    titleTe: 'గ్రామ పాఠశాల సమీపంలో పొంగిపొర్లుతున్న మురుగునీటి కాలువ',
+    description: 'An open drainage line near the Government Primary School is overflowing, causing foul smell and unhygienic conditions. Students and residents are facing inconvenience. Immediate action is required.',
+    descriptionTe: 'ప్రభుత్వ ప్రాథమిక పాఠశాల సమీపంలోని ఓపెన్ డ్రైనేజీ పొంగిపొర్లుతోంది. దుర్వాసన మరియు అపరిశుభ్ర పరిస్థితుల వల్ల విద్యార్థులు, నివాసితులు ఇబ్బంది పడుతున్నారు. తక్షణ చర్య అవసరం.',
+    voiceTranscript: null,
+    citizenName: 'SAMPLE / HACKATHON TEST DATA',
+    citizenPhone: 'Not applicable - sample data',
+    village: 'Ramapuram Village',
+    ward: 'School vicinity',
+    landmark: 'Near Government Primary School',
+    gpsCoordinates: null,
+    createdAt: SAMPLE_COMPLAINT_CREATED_AT,
+    source: 'Grama Sachivalayam',
+    isHackathonSample: true,
+    sampleLabel: 'SAMPLE / HACKATHON TEST DATA',
+    districtReviewReason: 'The issue remains unresolved despite initial village-level follow-up. District-level intervention is requested.',
+    forwardedAt: SAMPLE_COMPLAINT_FORWARDED_AT,
+    slaHours: 72,
+    status: 'FORWARDED_TO_DISTRICT',
+    assignedDepartment: 'Panchayat Sanitation & Public Health',
+    assignedOfficer: 'Pending District Review',
+    officerContact: null,
+    priority: 'High',
+    isOverdue: false,
+    evidence: [],
+    inspectionNotes: null,
+    officialRemarks: null,
+    resolutionRemarks: null,
+    citizenFeedback: null,
+    urgentEscalation: null,
+    timeline: [
+      {
+        status: 'Submitted',
+        timestamp: SAMPLE_COMPLAINT_CREATED_AT,
+        actor: 'Grama Sachivalayam',
+        note: 'Sample complaint prepared for District Authority hackathon workflow demonstration.'
+      },
+      {
+        status: 'FORWARDED_TO_DISTRICT',
+        timestamp: SAMPLE_COMPLAINT_FORWARDED_AT,
+        actor: 'Grama Sachivalayam',
+        note: 'The issue remains unresolved despite initial village-level follow-up. District-level intervention is requested.'
       }
     ]
   }
@@ -319,6 +347,9 @@ class DataStore {
   constructor() {
     this.complaints = [];
     this.apiAvailable = true;
+    this.authToken = null;
+    this.authUser = null;
+    this.adminToken = null;
     this.init();
   }
 
@@ -356,9 +387,11 @@ class DataStore {
     let changed = false;
     this.complaints.forEach(item => {
       if (item.status !== 'Resolved') {
-        const createdTime = new Date(item.createdAt).getTime();
-        const elapsedHours = (now - createdTime) / (3600 * 1000);
-        const shouldBeOverdue = elapsedHours > item.slaHours;
+        const districtDeadline = item.urgentEscalation && Date.parse(item.urgentEscalation.deadlineAt);
+        const deadline = Number.isFinite(districtDeadline)
+          ? districtDeadline
+          : Date.parse(item.createdAt) + item.slaHours * 3600 * 1000;
+        const shouldBeOverdue = now > deadline;
         if (item.isOverdue !== shouldBeOverdue) {
           item.isOverdue = shouldBeOverdue;
           changed = true;
@@ -375,27 +408,29 @@ class DataStore {
     }
   }
 
-  async getAllComplaints(filters = {}) {
+  async getAllComplaints(filters = {}, localOnly = false) {
     this.refreshOverdue();
     // Try API if running on server
-    try {
-      const params = new URLSearchParams();
-      if (filters.category && filters.category !== 'all') params.append('category', filters.category);
-      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters.village && filters.village !== 'all') params.append('village', filters.village);
-      if (filters.search) params.append('search', filters.search);
+    if (!localOnly) {
+      try {
+        const params = new URLSearchParams();
+        if (filters.category && filters.category !== 'all') params.append('category', filters.category);
+        if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+        if (filters.village && filters.village !== 'all') params.append('village', filters.village);
+        if (filters.search) params.append('search', filters.search);
 
-      const res = await fetch(`/api/complaints?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.data) {
-          this.complaints = data.data;
-          this.persist();
-          return this.complaints;
+        const res = await fetch(`/api/complaints?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.data) {
+            this.complaints = data.data;
+            this.persist();
+            return this.complaints;
+          }
         }
+      } catch (e) {
+        // Offline or direct static preview fallback
       }
-    } catch (e) {
-      // Offline or direct static preview fallback
     }
 
     // Local filtering
@@ -446,6 +481,34 @@ class DataStore {
     return this.complaints.find(c => c.id.toUpperCase() === cleanId) || null;
   }
 
+  async getOrderDetails(id) {
+    const cleanId = typeof id === 'string' ? id.trim().toUpperCase() : '';
+    if (!cleanId) return null;
+
+    let response;
+    try {
+      response = await fetch(`/api/complaints/${encodeURIComponent(cleanId)}`);
+    } catch (error) {
+      throw new Error('Could not reach the server to load order details.');
+    }
+
+    if (response.status === 404) return null;
+
+    let result;
+    try {
+      result = await response.json();
+    } catch (error) {
+      throw new Error('The server returned an invalid response while loading order details.');
+    }
+    if (!response.ok) {
+      throw new Error(result.message || 'Order details could not be loaded.');
+    }
+    if (!result || !result.data) {
+      throw new Error('The server response did not contain order details.');
+    }
+    return result.data;
+  }
+
   async createComplaint(complaintData) {
     const catCodeMap = {
       roads: 'RD',
@@ -486,17 +549,18 @@ class DataStore {
       officerContact: null,
       priority: 'High',
       isOverdue: false,
-      citizenPhoto: complaintData.citizenPhoto || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-      resolutionPhoto: null,
+      evidence: [],
+      inspectionNotes: null,
       officialRemarks: null,
       resolutionRemarks: null,
+      resolvedAt: null,
       citizenFeedback: null,
       timeline: [
         {
           status: 'Submitted',
           timestamp: nowIso,
           actor: complaintData.citizenName || 'Villager Rama Rao',
-          note: 'Grievance submitted via Voice-First Registration with photographic proof.'
+          note: 'Grievance submitted via Voice-First Registration. Photo evidence can be uploaded separately.'
         }
       ]
     };
@@ -526,114 +590,291 @@ class DataStore {
     return newObj;
   }
 
-  async updateComplaint(id, updates) {
-    const cleanId = id.toUpperCase();
-    const index = this.complaints.findIndex(c => c.id.toUpperCase() === cleanId);
-    if (index === -1) return null;
-
-    const current = this.complaints[index];
-    const nowIso = new Date().toISOString();
-
-    // Try API first
+  async login(username, password, portalRole) {
+    let response;
     try {
-      const res = await fetch(`/api/complaints/${cleanId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.data) {
-          this.complaints[index] = data.data;
-          this.persist();
-          this.broadcast('pallepraja:status-changed', { complaint: data.data });
-          return data.data;
-        }
-      }
-    } catch (e) {}
-
-    // Local fallback update
-    if (updates.assignedDepartment) current.assignedDepartment = updates.assignedDepartment;
-    if (updates.assignedOfficer) current.assignedOfficer = updates.assignedOfficer;
-    if (updates.officerContact) current.officerContact = updates.officerContact;
-    if (updates.officialRemarks) current.officialRemarks = updates.officialRemarks;
-    if (updates.resolutionPhoto) current.resolutionPhoto = updates.resolutionPhoto;
-    if (updates.resolutionRemarks) current.resolutionRemarks = updates.resolutionRemarks;
-    if (updates.priority) current.priority = updates.priority;
-
-    if (updates.status && updates.status !== current.status) {
-      const oldStatus = current.status;
-      current.status = updates.status;
-
-      let noteText = `Status transitioned from ${oldStatus} to ${updates.status}.`;
-      if (updates.status === 'Assigned') {
-        noteText = `Assigned to ${current.assignedDepartment} (${current.assignedOfficer || 'Field Unit'}). Target SLA: 72 hrs.`;
-      } else if (updates.status === 'In Progress') {
-        noteText = `Official field work started: ${updates.officialRemarks || 'Repair gang dispatched to site.'}`;
-      } else if (updates.status === 'Resolved') {
-        noteText = `Grievance marked RESOLVED with after-repair photographic proof. Remarks: ${updates.resolutionRemarks || updates.officialRemarks || 'Work inspected & completed.'}`;
-        current.isOverdue = false;
-      }
-
-      current.timeline.push({
-        status: updates.status,
-        timestamp: nowIso,
-        actor: updates.actionActor || 'Village Official (V. Srikanth, Panchayat Sec.)',
-        note: noteText
-      });
-    } else if (updates.officialRemarks && !updates.status) {
-      current.timeline.push({
-        status: current.status,
-        timestamp: nowIso,
-        actor: updates.actionActor || 'Village Official',
-        note: `Official Field Log: ${updates.officialRemarks}`
-      });
-    }
-
-    this.persist();
-    this.broadcast('pallepraja:status-changed', { complaint: current });
-    return current;
-  }
-
-  async escalateComplaint(id, reason, authorityName) {
-    const cleanId = id.toUpperCase();
-    const index = this.complaints.findIndex(c => c.id.toUpperCase() === cleanId);
-    if (index === -1) return null;
-
-    try {
-      const res = await fetch(`/api/complaints/${cleanId}/escalate`, {
+      response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ escalationReason: reason, authorityName })
+        credentials: 'same-origin',
+        body: JSON.stringify({ username, password, ...(portalRole ? { portalRole } : {}) })
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.data) {
-          this.complaints[index] = data.data;
-          this.persist();
-          this.broadcast('pallepraja:escalated', { complaint: data.data });
-          return data.data;
-        }
+    } catch (error) {
+      throw new Error('Could not reach the server to sign in.');
+    }
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Officer sign-in failed.');
+    }
+    if (portalRole) {
+      this.authToken = null;
+      this.authUser = result.user;
+      this.adminToken = null;
+    } else if (result.user.role === 'ADMIN') {
+      this.adminToken = result.accessToken;
+      this.authToken = result.accessToken;
+      this.authUser = result.user;
+    } else {
+      this.authToken = result.accessToken;
+      this.authUser = result.user;
+    }
+    return result;
+  }
+
+  async restoreSession() {
+    try {
+      const response = await fetch('/api/auth/session', { credentials: 'same-origin' });
+      if (!response.ok) {
+        this.authToken = null;
+        this.authUser = null;
+        this.adminToken = null;
+        return null;
       }
-    } catch (e) {}
+      const result = await response.json();
+      this.authUser = result.user;
+      this.authToken = null;
+      this.adminToken = null;
+      return this.authUser;
+    } catch (error) {
+      throw new Error('Could not restore the sign-in session from the server.');
+    }
+  }
 
-    // Local fallback
-    const current = this.complaints[index];
-    const nowIso = new Date().toISOString();
-    current.status = 'Escalated';
-    current.priority = 'Critical';
-    const finalReason = reason || 'Statutory SLA deadline breached. Collectorate direct intervention ordered.';
+  async logout() {
+    let response;
+    try {
+      response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+    } catch (error) {
+      throw new Error('Could not reach the server to sign out.');
+    }
+    if (!response.ok) throw new Error('The server could not end the sign-in session.');
+    this.authToken = null;
+    this.authUser = null;
+    this.adminToken = null;
+  }
 
-    current.timeline.push({
-      status: 'Escalated',
-      timestamp: nowIso,
-      actor: authorityName || 'District Collector (Dr. Ananya Reddy, IAS)',
-      note: `DISTRICT COLLECTORATE ESCALATION: ${finalReason}`
-    });
+  async requestAuthenticated(path, { method = 'GET', body } = {}, accessToken = this.authToken) {
+    if (!accessToken && !this.authUser) {
+      throw new Error('Sign in with an authorized account to access this workflow.');
+    }
 
+    let response;
+    try {
+      response = await fetch(path, {
+        method,
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          ...(body ? { 'Content-Type': 'application/json' } : {})
+        },
+        credentials: 'same-origin',
+        ...(body ? { body: JSON.stringify(body) } : {})
+      });
+    } catch (error) {
+      throw new Error('Could not reach the server for this workflow.');
+    }
+
+    let result;
+    try {
+      result = await response.json();
+    } catch (error) {
+      throw new Error('The server returned an invalid workflow response.');
+    }
+    if (!response.ok) {
+      if (response.status === 401) {
+        this.authToken = null;
+        this.authUser = null;
+        window.dispatchEvent(new CustomEvent('pallepraja:auth-expired'));
+      }
+      throw new Error(result.message || 'The requested workflow action failed.');
+    }
+    return result.data;
+  }
+
+  async getPortalDashboard(role) {
+    const endpoint = role === 'GRAMA_SACHIVALAYAM'
+      ? '/api/grama/dashboard'
+      : '/api/district/dashboard';
+    const data = await this.requestAuthenticated(endpoint);
+    this.complaints = data;
+    return data;
+  }
+
+  getAccounts(accessToken = this.authToken) {
+    return this.requestAuthenticated('/api/auth/accounts', {}, accessToken);
+  }
+
+  setAccountActive(username, active, accessToken = this.authToken) {
+    return this.requestAuthenticated(
+      `/api/auth/accounts/${encodeURIComponent(username)}/status`,
+      { method: 'PATCH', body: { active } },
+      accessToken
+    );
+  }
+
+  resetAccountPassword(username, password, accessToken = this.authToken) {
+    return this.requestAuthenticated(
+      `/api/auth/accounts/${encodeURIComponent(username)}/password`,
+      { method: 'PATCH', body: { password } },
+      accessToken
+    );
+  }
+
+  getDistrictReviews(accessToken = this.authToken) {
+    return this.requestAuthenticated('/api/district/reviews', {}, accessToken);
+  }
+
+  async forwardComplaintToDistrict(id, reason, accessToken = this.authToken) {
+    const complaint = await this.requestAuthenticated(
+      `/api/grama/complaints/${encodeURIComponent(id)}/forward`,
+      { method: 'POST', body: { reason } },
+      accessToken
+    );
+    const index = this.complaints.findIndex(item => item.id.toUpperCase() === complaint.id.toUpperCase());
+    if (index === -1) this.complaints.unshift(complaint);
+    else this.complaints[index] = complaint;
     this.persist();
-    this.broadcast('pallepraja:escalated', { complaint: current });
-    return current;
+    this.broadcast('pallepraja:district-review-forwarded', { complaint });
+    return complaint;
+  }
+
+  getDistrictReview(id, accessToken = this.authToken) {
+    return this.requestAuthenticated(`/api/district/reviews/${encodeURIComponent(id)}`, {}, accessToken);
+  }
+
+  async returnDistrictReview(id, instructions, accessToken = this.authToken) {
+    const complaint = await this.requestAuthenticated(
+      `/api/district/reviews/${encodeURIComponent(id)}/return`,
+      { method: 'POST', body: { instructions } },
+      accessToken
+    );
+    const index = this.complaints.findIndex(item => item.id.toUpperCase() === complaint.id.toUpperCase());
+    if (index === -1) this.complaints.unshift(complaint);
+    else this.complaints[index] = complaint;
+    this.persist();
+    this.broadcast('pallepraja:district-review-returned', { complaint });
+    return complaint;
+  }
+
+  getUrgentEscalations(accessToken = this.authToken) {
+    return this.requestAuthenticated('/api/official/urgent-escalations', {}, accessToken);
+  }
+
+  async registerOfficer({ username, password, department, role = 'OFFICER', active = true }, accessToken = this.authToken) {
+    let response;
+    try {
+      response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ username, password, department, role, active })
+      });
+    } catch (error) {
+      throw new Error('Could not reach the server to register the officer.');
+    }
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Officer registration failed.');
+    }
+    return result.user;
+  }
+
+  async uploadEvidence(id, type, file, accessToken = this.authToken, inspectionNotes = '') {
+    const formData = new FormData();
+    formData.append('type', type);
+    formData.append('file', file);
+    if (inspectionNotes) formData.append('inspectionNotes', inspectionNotes);
+
+    let response;
+    try {
+      response = await fetch(`/api/complaints/${encodeURIComponent(id)}/evidence`, {
+        method: 'POST',
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        body: formData
+      });
+    } catch (error) {
+      throw new Error('Could not reach the server to upload evidence.');
+    }
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Evidence upload failed.');
+    }
+
+    const complaint = this.complaints.find(item => item.id.toUpperCase() === id.toUpperCase());
+    if (complaint) {
+      complaint.evidence = complaint.evidence || [];
+      complaint.evidence.push(result.data);
+      this.persist();
+      this.broadcast('pallepraja:evidence-added', { complaint, evidence: result.data });
+    }
+    return result.data;
+  }
+
+  async updateComplaint(id, updates, accessToken = this.authToken) {
+    const cleanId = id.toUpperCase();
+    const index = this.complaints.findIndex(c => c.id.toUpperCase() === cleanId);
+
+    let response;
+    try {
+      response = await fetch(`/api/complaints/${encodeURIComponent(cleanId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+        },
+        body: JSON.stringify(updates)
+      });
+    } catch (error) {
+      throw new Error('Could not reach the server to save the official update.');
+    }
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Official update failed.');
+    }
+
+    if (index === -1) this.complaints.unshift(result.data);
+    else this.complaints[index] = result.data;
+    this.persist();
+    this.broadcast('pallepraja:status-changed', { complaint: result.data });
+    return result.data;
+  }
+
+  async escalateComplaint(id, reason, accessToken = this.authToken) {
+    const cleanId = id.toUpperCase();
+    const index = this.complaints.findIndex(c => c.id.toUpperCase() === cleanId);
+    if (index === -1) return null;
+
+    let response;
+    try {
+      response = await fetch(`/api/complaints/${cleanId}/escalate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+        },
+        body: JSON.stringify({ escalationReason: reason })
+      });
+    } catch (error) {
+      throw new Error('Could not reach the server to submit the escalation.');
+    }
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Escalation could not be submitted.');
+    }
+    this.complaints[index] = result.data;
+    this.persist();
+    this.broadcast('pallepraja:escalated', { complaint: result.data });
+    return result.data;
   }
 
   async submitFeedback(id, { rating, comment, isSatisfied, reopenReason, citizenName }) {
@@ -641,60 +882,26 @@ class DataStore {
     const index = this.complaints.findIndex(c => c.id.toUpperCase() === cleanId);
     if (index === -1) return null;
 
+    let response;
     try {
-      const res = await fetch(`/api/complaints/${cleanId}/feedback`, {
+      response = await fetch(`/api/complaints/${cleanId}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating, comment, isSatisfied, reopenReason, citizenName })
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.data) {
-          this.complaints[index] = data.data;
-          this.persist();
-          this.broadcast('pallepraja:data-updated', { complaint: data.data });
-          return data.data;
-        }
-      }
-    } catch (e) {}
-
-    // Local fallback
-    const current = this.complaints[index];
-    const nowIso = new Date().toISOString();
-
-    if (isSatisfied === false || reopenReason) {
-      current.status = 'Reopened';
-      current.priority = 'High';
-      current.citizenFeedback = {
-        rating: rating || 1,
-        comment: reopenReason || comment || 'Problem persists or poor repair quality.',
-        verifiedAt: nowIso,
-        isSatisfied: false
-      };
-      current.timeline.push({
-        status: 'Reopened',
-        timestamp: nowIso,
-        actor: citizenName || current.citizenName || 'Citizen Rama Rao',
-        note: `CITIZEN REOPENED GRIEVANCE: "${reopenReason || comment || 'Work incomplete'}" Official resolution rejected.`
-      });
-    } else {
-      current.citizenFeedback = {
-        rating: rating || 5,
-        comment: comment || 'Verified and satisfied with resolution.',
-        verifiedAt: nowIso,
-        isSatisfied: true
-      };
-      current.timeline.push({
-        status: 'Citizen Verified',
-        timestamp: nowIso,
-        actor: citizenName || current.citizenName || 'Citizen Rama Rao',
-        note: `Citizen verified resolution. Rating: ${rating || 5}/5. Review: "${comment || 'Satisfied'}"`
-      });
+    } catch (error) {
+      throw new Error('Could not reach the server to submit citizen feedback.');
     }
 
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Citizen feedback could not be saved.');
+    }
+
+    this.complaints[index] = result.data;
     this.persist();
-    this.broadcast('pallepraja:data-updated', { complaint: current });
-    return current;
+    this.broadcast('pallepraja:data-updated', { complaint: result.data });
+    return result.data;
   }
 
   async getStats() {
@@ -707,39 +914,40 @@ class DataStore {
       }
     } catch (e) {}
 
-    const total = this.complaints.length;
-    const resolved = this.complaints.filter(c => c.status === 'Resolved').length;
-    const inProgress = this.complaints.filter(c => c.status === 'In Progress').length;
-    const assigned = this.complaints.filter(c => c.status === 'Assigned').length;
-    const submitted = this.complaints.filter(c => c.status === 'Submitted').length;
-    const overdue = this.complaints.filter(c => c.isOverdue && c.status !== 'Resolved').length;
-    const escalated = this.complaints.filter(c => c.status === 'Escalated').length;
-    const reopened = this.complaints.filter(c => c.status === 'Reopened').length;
+    const reportableComplaints = this.complaints.filter(c => !c.isHackathonSample);
+    const total = reportableComplaints.length;
+    const resolved = reportableComplaints.filter(c => c.status === 'Resolved').length;
+    const inProgress = reportableComplaints.filter(c => c.status === 'In Progress').length;
+    const assigned = reportableComplaints.filter(c => c.status === 'Assigned').length;
+    const submitted = reportableComplaints.filter(c => c.status === 'Submitted').length;
+    const overdue = reportableComplaints.filter(c => c.isOverdue && c.status !== 'Resolved').length;
+    const escalated = reportableComplaints.filter(c => c.status === 'Escalated').length;
+    const reopened = reportableComplaints.filter(c => c.status === 'Reopened').length;
 
     const categoryStats = {
-      roads: this.complaints.filter(c => c.categoryKey === 'roads').length,
-      water: this.complaints.filter(c => c.categoryKey === 'water').length,
-      electricity: this.complaints.filter(c => c.categoryKey === 'electricity').length,
-      drainage: this.complaints.filter(c => c.categoryKey === 'drainage').length,
-      sanitation: this.complaints.filter(c => c.categoryKey === 'sanitation').length,
-      other: this.complaints.filter(c => c.categoryKey === 'other').length,
+      roads: reportableComplaints.filter(c => c.categoryKey === 'roads').length,
+      water: reportableComplaints.filter(c => c.categoryKey === 'water').length,
+      electricity: reportableComplaints.filter(c => c.categoryKey === 'electricity').length,
+      drainage: reportableComplaints.filter(c => c.categoryKey === 'drainage').length,
+      sanitation: reportableComplaints.filter(c => c.categoryKey === 'sanitation').length,
+      other: reportableComplaints.filter(c => c.categoryKey === 'other').length,
     };
 
     const villageStats = {
       Ramapuram: {
-        total: this.complaints.filter(c => c.village.includes('Ramapuram')).length,
-        resolved: this.complaints.filter(c => c.village.includes('Ramapuram') && c.status === 'Resolved').length,
-        overdue: this.complaints.filter(c => c.village.includes('Ramapuram') && c.isOverdue && c.status !== 'Resolved').length,
+        total: reportableComplaints.filter(c => c.village.includes('Ramapuram')).length,
+        resolved: reportableComplaints.filter(c => c.village.includes('Ramapuram') && c.status === 'Resolved').length,
+        overdue: reportableComplaints.filter(c => c.village.includes('Ramapuram') && c.isOverdue && c.status !== 'Resolved').length,
       },
       Gandhipuram: {
-        total: this.complaints.filter(c => c.village.includes('Gandhipuram')).length,
-        resolved: this.complaints.filter(c => c.village.includes('Gandhipuram') && c.status === 'Resolved').length,
-        overdue: this.complaints.filter(c => c.village.includes('Gandhipuram') && c.isOverdue && c.status !== 'Resolved').length,
+        total: reportableComplaints.filter(c => c.village.includes('Gandhipuram')).length,
+        resolved: reportableComplaints.filter(c => c.village.includes('Gandhipuram') && c.status === 'Resolved').length,
+        overdue: reportableComplaints.filter(c => c.village.includes('Gandhipuram') && c.isOverdue && c.status !== 'Resolved').length,
       },
       Krishnapuram: {
-        total: this.complaints.filter(c => c.village.includes('Krishnapuram')).length,
-        resolved: this.complaints.filter(c => c.village.includes('Krishnapuram') && c.status === 'Resolved').length,
-        overdue: this.complaints.filter(c => c.village.includes('Krishnapuram') && c.isOverdue && c.status !== 'Resolved').length,
+        total: reportableComplaints.filter(c => c.village.includes('Krishnapuram')).length,
+        resolved: reportableComplaints.filter(c => c.village.includes('Krishnapuram') && c.status === 'Resolved').length,
+        overdue: reportableComplaints.filter(c => c.village.includes('Krishnapuram') && c.isOverdue && c.status !== 'Resolved').length,
       }
     };
 
@@ -764,11 +972,23 @@ class DataStore {
   }
 
   async resetData() {
+    let response;
     try {
-      await fetch('/api/reset', { method: 'POST' });
-    } catch (e) {}
+      response = await fetch('/api/reset', {
+        method: 'POST',
+        headers: this.adminToken ? { Authorization: `Bearer ${this.adminToken}` } : {},
+        credentials: 'same-origin'
+      });
+    } catch (error) {
+      throw new Error('Could not reach the server to reset complaint records.');
+    }
 
-    this.complaints = JSON.parse(JSON.stringify(SEED_COMPLAINTS));
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Complaint records could not be reset.');
+    }
+
+    this.complaints = result.data;
     this.persist();
     this.broadcast('pallepraja:data-reset');
     return this.complaints;

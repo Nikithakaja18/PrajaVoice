@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PALLE PRAJA - Smart Village Grievance Redressal System
+   PRAJA VOICE - Smart Village Grievance Redressal System
    Civic Tech Design System & Responsive Stylesheet
    Palette: Forest Green, Emerald, Pure White, Slate Gray, Accent Amber & Crimson
    ========================================================================== */
@@ -123,7 +123,7 @@ button {
   transition: all var(--transition-normal);
 }
 
-/* Universal Persistent Demo Switcher Bar */
+/* Persistent Navigation */
 .demo-top-bar {
   background: linear-gradient(90deg, #072619 0%, #0e3b28 100%);
   color: #ffffff;
@@ -142,25 +142,6 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-}
-
-.demo-badge-pill {
-  background: var(--accent-gold);
-  color: #072619;
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  letter-spacing: 0.05em;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  animation: pulse-badge 2s infinite ease-in-out;
-}
-
-@keyframes pulse-badge {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(0.98); }
 }
 
 .role-switcher-group {
@@ -369,6 +350,51 @@ button {
 
 .module-view.active {
   display: block;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.portal-login-card {
+  max-width: 440px;
+  margin: 48px auto;
+  padding: 28px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.portal-login-card h2 {
+  margin-bottom: 8px;
+  color: var(--primary-900);
+}
+
+.portal-login-card > p {
+  margin-bottom: 20px;
+  color: var(--gray-600);
+}
+
+.portal-login-card form {
+  display: grid;
+  gap: 10px;
+}
+
+.portal-login-error {
+  min-height: 1.25rem;
+  color: var(--accent-red);
+  font-size: 0.88rem;
+}
+
+.managed-account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 0.85rem;
 }
 
 @keyframes fadeIn {
@@ -801,6 +827,9 @@ button {
 .status-reopened { background: #ffe4e6; color: #be123c; }
 .status-escalated { background: #fef2f2; color: var(--accent-red); border: 1px solid #fecaca; }
 .status-overdue { background: #fee2e2; color: #991b1b; animation: pulse-red 1.8s infinite; }
+.status-forwarded { background: #e0e7ff; color: #3730a3; }
+.status-urgent { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.status-high-priority { background: #fff1f2; color: #be123c; }
 
 @keyframes pulse-red {
   0%, 100% { opacity: 1; }
@@ -1020,7 +1049,7 @@ button {
   color: var(--primary-800);
 }
 
-/* Quick Voice Simulation Presets for Hackathon Judges */
+/* Quick Voice Input Presets */
 .voice-presets-container {
   margin-top: 18px;
   background: var(--gray-50);
@@ -1466,6 +1495,26 @@ button {
   display: block;
 }
 
+.evidence-metadata {
+  padding: 8px 12px;
+  color: var(--gray-600);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.evidence-unavailable {
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-500);
+  padding: 24px;
+  text-align: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
 .no-evidence-placeholder {
   height: 220px;
   display: flex;
@@ -1847,10 +1896,217 @@ button {
   max-width: 760px;
 }
 
+.order-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.order-complaint-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.order-summary > p,
+.order-directive p {
+  color: var(--gray-700);
+  line-height: 1.6;
+}
+
+.order-directive {
+  padding: 16px;
+  border-left: 4px solid var(--accent-red);
+  border-radius: var(--radius-sm);
+  background: #fff1f2;
+}
+
+.order-directive h4,
+.order-timeline-heading {
+  margin-bottom: 8px;
+  color: var(--primary-900);
+}
+
+.order-directive > span {
+  display: block;
+  margin-top: 8px;
+  color: var(--gray-600);
+  font-size: 0.82rem;
+}
+
+.order-timeline {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.order-timeline-item {
+  padding: 12px 14px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: var(--gray-50);
+}
+
+.order-timeline-item > div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.order-timeline-item > div span,
+.order-timeline-item time {
+  color: var(--gray-600);
+  font-size: 0.82rem;
+}
+
+.order-timeline-item p {
+  margin-top: 6px;
+  color: var(--gray-700);
+  font-size: 0.88rem;
+}
+
+.order-message {
+  padding: 18px;
+  border-radius: var(--radius-sm);
+  background: var(--gray-50);
+  color: var(--gray-700);
+}
+
+.order-message h4 {
+  margin-bottom: 6px;
+  color: var(--primary-900);
+}
+
+.order-message-error {
+  border-left: 4px solid var(--accent-red);
+  background: #fff1f2;
+}
+
+.district-review-card,
+.urgent-escalations-card {
+  margin-bottom: 24px;
+  padding: 24px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.district-review-card > p,
+.urgent-escalations-card > p {
+  margin: 0 0 14px;
+  color: var(--gray-600);
+  font-size: 0.88rem;
+}
+
+.review-auth-row,
+.urgent-auth-row {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.review-auth-row label,
+.urgent-auth-row label {
+  display: grid;
+  flex: 1 1 190px;
+  gap: 5px;
+  color: var(--gray-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.district-review-list,
+.urgent-escalations-list {
+  display: grid;
+  gap: 12px;
+}
+
+.district-review-item,
+.urgent-escalation-item {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--gray-50);
+}
+
+.district-review-item h4,
+.urgent-escalation-item h4 {
+  margin: 8px 0 4px;
+  color: var(--primary-900);
+}
+
+.district-review-item p,
+.urgent-escalation-item p {
+  margin-top: 5px;
+  color: var(--gray-700);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.district-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.district-review-actions .btn-escalate-action {
+  background: var(--accent-blue);
+}
+
+.empty-queue-message {
+  padding: 16px;
+  color: var(--gray-600);
+  text-align: center;
+}
+
+.sample-data-label {
+  margin: 4px 0 0;
+  color: var(--gray-500);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.district-resolution-deadline {
+  margin: 6px 0 0;
+  color: var(--accent-red);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.order-evidence-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.evidence-thumbnail {
+  display: grid;
+  gap: 4px;
+  width: 120px;
+  color: var(--primary-800);
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+
+.evidence-thumbnail img {
+  width: 120px;
+  height: 90px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
 /* KPI Scorecards */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -2066,7 +2322,7 @@ button {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* Demo Walkthrough Drawer */
+/* Workflow Guide Drawer */
 .demo-drawer {
   position: fixed;
   top: 0;

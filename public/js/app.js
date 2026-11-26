@@ -1,5 +1,5 @@
 /**
- * Palle Praja - Main Application Controller
+ * Praja Voice - Main Application Controller
  * Handles routing, role switching, forms, voice recognition, official actions,
  * citizen verification, authority escalations, and real-time reactive state updates.
  */
@@ -9,27 +9,14 @@ class AppController {
     this.currentRole = 'citizen';
     this.currentVillagerSubView = 'welcome';
     this.selectedCategory = 'roads';
-    this.uploadedPhotoData = null;
+    this.uploadedPhotoFile = null;
+    this.photoPreviewUrl = null;
     this.currentActiveComplaintId = 'PP-2025-RD-1042';
     this.activeActionComplaintId = null;
+    this.pendingInspectionFile = null;
+    this.pendingProgressFile = null;
+    this.pendingResolutionFile = null;
     this.selectedRating = 5;
-
-    // Realistic sample defect photos
-    this.samplePhotos = {
-      pothole: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-      pipe: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80',
-      sparks: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=800&q=80',
-      drain: 'https://images.unsplash.com/photo-1596785236245-5b53d4289069?auto=format&fit=crop&w=800&q=80'
-    };
-
-    // Realistic sample resolution photos (After official fix)
-    this.sampleResolutionPhotos = {
-      road: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80',
-      pipe: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?auto=format&fit=crop&w=800&q=80',
-      power: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80',
-      drain: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=800&q=80',
-      clean: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'
-    };
 
     this.init();
   }
@@ -40,14 +27,22 @@ class AppController {
 
     // Listen to data store events
     window.addEventListener('pallepraja:data-updated', () => this.refreshAllViews());
+    window.addEventListener('pallepraja:auth-expired', () => {
+      if (this.currentRole === 'official' || this.currentRole === 'authority') {
+        this.updatePortalAccess(this.currentRole);
+      }
+      this.showToast('Your sign-in session has expired. Please sign in again.', 'warning');
+    });
     window.addEventListener('pallepraja:language-changed', () => {
       this.refreshAllViews();
       this.syncVoiceLanguage();
     });
 
-    // Default sample photo for new grievance
-    this.uploadedPhotoData = this.samplePhotos.pothole;
-    this.updatePhotoPreview(this.uploadedPhotoData);
+    try {
+      await window.dataStore.restoreSession();
+    } catch (error) {
+      console.error('Unable to restore the officer session:', error);
+    }
 
     // Initial render of all dashboards
     await this.refreshAllViews();
@@ -57,6 +52,18 @@ class AppController {
 
     // Set voice language according to current i18n
     this.syncVoiceLanguage();
+
+    const portal = new URLSearchParams(window.location.search).get('portal');
+    const requestedRole = window.location.pathname.startsWith('/grama-sachivalayam')
+      ? 'official'
+      : window.location.pathname.startsWith('/district-authority')
+        ? 'authority'
+        : portal === 'grama'
+          ? 'official'
+          : portal === 'district'
+            ? 'authority'
+            : null;
+    if (requestedRole) this.switchRole(requestedRole);
   }
 
   syncVoiceLanguage() {
@@ -70,7 +77,21 @@ class AppController {
      ROLE & NAVIGATION SWITCHING
      ========================================================================== */
   switchRole(role) {
+    const moduleName = role === 'citizen' ? 'villager' : role;
+    const targetModule = document.getElementById(`module-${moduleName}`);
+    if (!targetModule) {
+      this.showToast('That section is unavailable. Please reload the application.', 'error');
+      return;
+    }
+
     this.currentRole = role;
+    if (role === 'official' || role === 'authority') {
+      this.updatePortalAccess(role);
+      const portal = role === 'official' ? 'grama' : 'district';
+      window.history.replaceState(null, '', `/?portal=${portal}`);
+    } else {
+      window.history.replaceState(null, '', '/');
+    }
 
     // Update top bar buttons
     document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
@@ -79,8 +100,7 @@ class AppController {
 
     // Update visible module
     document.querySelectorAll('.module-view').forEach(mod => mod.classList.remove('active'));
-    const targetModule = document.getElementById(`module-${role}`);
-    if (targetModule) targetModule.classList.add('active');
+    targetModule.classList.add('active');
 
     // Update persona tag in header
     const personaTag = document.getElementById('header-persona-tag');
@@ -91,8 +111,65 @@ class AppController {
       else if (role === 'transparency') personaTag.textContent = i18n.t('roleTransparency');
     }
 
-    this.refreshAllViews();
+    const renderPromise = this.refreshAllViews();
     this.showToast(`Switched view to ${i18n.t(role === 'citizen' ? 'roleCitizen' : role === 'official' ? 'roleOfficial' : role === 'authority' ? 'roleAuthority' : 'roleTransparency')}`, 'info');
+    return renderPromise;
+  }
+
+  updatePortalAccess(portal) {
+    const isGrama = portal === 'official';
+    const expectedRole = isGrama ? 'GRAMA_SACHIVALAYAM' : 'DISTRICT_AUTHORITY';
+    const loginPanel = document.getElementById(isGrama ? 'grama-login-panel' : 'district-login-panel');
+    const dashboard = document.getElementById(isGrama ? 'grama-dashboard-content' : 'district-dashboard-content');
+    const error = document.getElementById(isGrama ? 'grama-login-error' : 'district-login-error');
+    const logout = document.getElementById(isGrama ? 'grama-login-logout' : 'district-login-logout');
+    const user = window.dataStore.authUser;
+    const authorized = Boolean(user && user.role === expectedRole);
+    if (loginPanel) loginPanel.hidden = authorized;
+    if (dashboard) dashboard.hidden = !authorized;
+    if (logout) logout.hidden = !user || authorized;
+    if (error) {
+      error.textContent = user && !authorized
+        ? `Your ${user.role.replace(/_/g, ' ')} account cannot access this portal. Sign out and use an authorized account.`
+        : '';
+    }
+    const userLabel = document.getElementById(isGrama ? 'official-session-user' : 'district-session-user');
+    if (userLabel) userLabel.textContent = authorized ? user.username : '';
+    return authorized;
+  }
+
+  async loginPortal(role) {
+    const isGrama = role === 'GRAMA_SACHIVALAYAM';
+    const prefix = isGrama ? 'grama' : 'district';
+    const usernameInput = document.getElementById(`${prefix}-username`);
+    const passwordInput = document.getElementById(`${prefix}-password`);
+    const error = document.getElementById(`${prefix}-login-error`);
+    const username = usernameInput ? usernameInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+    if (!username || !password) {
+      if (error) error.textContent = 'Enter your username and password.';
+      return;
+    }
+
+    if (error) error.textContent = '';
+    try {
+      await window.dataStore.login(username, password, role);
+      if (passwordInput) passwordInput.value = '';
+      await this.switchRole(isGrama ? 'official' : 'authority');
+    } catch (loginError) {
+      if (passwordInput) passwordInput.value = '';
+      if (error) error.textContent = loginError.message;
+    }
+  }
+
+  async logoutPortal() {
+    try {
+      await window.dataStore.logout();
+      this.updatePortalAccess(this.currentRole);
+      this.showToast('You have been signed out.', 'success');
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
   }
 
   switchVillagerSubView(subView) {
@@ -178,12 +255,6 @@ class AppController {
     // Auto-select category matching preset
     this.selectCategory(presetKey);
 
-    // Auto-pick appropriate photo
-    if (presetKey === 'roads') this.pickSamplePhoto('pothole');
-    else if (presetKey === 'water') this.pickSamplePhoto('pipe');
-    else if (presetKey === 'electricity') this.pickSamplePhoto('sparks');
-    else if (presetKey === 'drainage') this.pickSamplePhoto('drain');
-
     this.showToast('Voice transcript loaded into grievance form!', 'success');
   }
 
@@ -196,36 +267,42 @@ class AppController {
 
   handlePhotoUpload(event) {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.uploadedPhotoData = e.target.result;
-        this.updatePhotoPreview(this.uploadedPhotoData);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!supportedTypes.includes(file.type)) {
+      event.target.value = '';
+      this.showToast('Choose a JPEG, PNG, or WebP image.', 'error');
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      event.target.value = '';
+      this.showToast('Image is too large. Maximum upload size is 5 MB.', 'error');
+      return;
+    }
+
+    this.uploadedPhotoFile = file;
+    this.updatePhotoPreview(file);
   }
 
-  pickSamplePhoto(type) {
-    if (this.samplePhotos[type]) {
-      this.uploadedPhotoData = this.samplePhotos[type];
-      this.updatePhotoPreview(this.uploadedPhotoData);
-      this.showToast('Sample photo evidence attached', 'success');
-    }
-  }
-
-  updatePhotoPreview(src) {
+  updatePhotoPreview(file) {
     const previewBox = document.getElementById('photo-preview-box');
     const previewImg = document.getElementById('photo-preview-img');
     if (previewBox && previewImg) {
-      previewImg.src = src;
+      if (this.photoPreviewUrl) URL.revokeObjectURL(this.photoPreviewUrl);
+      this.photoPreviewUrl = URL.createObjectURL(file);
+      previewImg.src = this.photoPreviewUrl;
       previewBox.style.display = 'block';
     }
   }
 
   removePhoto(event) {
     if (event) event.stopPropagation();
-    this.uploadedPhotoData = null;
+    this.uploadedPhotoFile = null;
+    if (this.photoPreviewUrl) {
+      URL.revokeObjectURL(this.photoPreviewUrl);
+      this.photoPreviewUrl = null;
+    }
     const previewBox = document.getElementById('photo-preview-box');
     if (previewBox) previewBox.style.display = 'none';
     const fileInput = document.getElementById('photo-file-input');
@@ -290,8 +367,7 @@ class AppController {
       village: village,
       ward: ward,
       landmark: landmark,
-      gpsCoordinates: gpsInput ? gpsInput.value : '16.5062° N, 80.6480° E',
-      citizenPhoto: this.uploadedPhotoData || this.samplePhotos.pothole
+      gpsCoordinates: gpsInput ? gpsInput.value : '16.5062° N, 80.6480° E'
     };
 
     if (submitBtn) {
@@ -302,18 +378,36 @@ class AppController {
     try {
       const created = await window.dataStore.createComplaint(newComplaintPayload);
       this.currentActiveComplaintId = created.id;
+      let photoUploadError = '';
+      if (this.uploadedPhotoFile) {
+        try {
+          await window.dataStore.uploadEvidence(created.id, 'complaint', this.uploadedPhotoFile);
+        } catch (error) {
+          photoUploadError = error.message;
+        }
+      }
 
       // Show success celebration modal
       const modalIdElem = document.getElementById('success-modal-id');
       if (modalIdElem) modalIdElem.textContent = created.id;
       this.openModal('modal-success');
+      const modalSubtitle = document.querySelector('#modal-success [data-i18n="modalSuccessSubtitle"]');
+      if (modalSubtitle && photoUploadError) {
+        modalSubtitle.textContent = `Complaint ${created.id} was created, but the photo was not saved: ${photoUploadError}`;
+      }
 
       // Spoken voice confirmation
       if (window.voiceManager) {
         window.voiceManager.speakConfirmation('మీ ఫిర్యాదు విజయవంతంగా నమోదైంది. ఫిర్యాదు సంఖ్య: ' + created.id, i18n.getLanguage());
       }
 
-      this.showToast(`Complaint registered successfully: ${created.id}`, 'success');
+      this.showToast(
+        photoUploadError
+          ? `Complaint ${created.id} was created, but its photo upload failed.`
+          : `Complaint registered successfully: ${created.id}`,
+        photoUploadError ? 'warning' : 'success'
+      );
+      this.removePhoto();
       this.renderCitizenDashboard();
       this.renderOfficialTable();
     } catch (e) {
@@ -351,7 +445,8 @@ class AppController {
     const countBadge = document.getElementById('citizen-complaint-count');
     if (!listContainer) return;
 
-    const complaints = await window.dataStore.getAllComplaints();
+    const complaints = (await window.dataStore.getAllComplaints())
+      .filter(complaint => !complaint.isHackathonSample);
     if (countBadge) countBadge.textContent = `${complaints.length} Registered`;
 
     if (complaints.length === 0) {
@@ -411,7 +506,17 @@ class AppController {
         <div class="dossier-card" style="text-align: center; padding: 48px;">
           <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; color: var(--accent-gold); margin-bottom: 12px;"></i>
           <h3>Complaint ID "${this.escapeHtml(id)}" Not Found</h3>
-          <p style="color: var(--gray-500); margin-top: 6px;">Please verify the ID or choose one of the quick test complaints above.</p>
+          <p style="color: var(--gray-500); margin-top: 6px;">Please verify the ID or choose one of the complaint IDs above.</p>
+        </div>
+      `;
+      return;
+    }
+    if (complaint.isHackathonSample) {
+      container.innerHTML = `
+        <div class="dossier-card" style="text-align: center; padding: 48px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; color: var(--accent-gold); margin-bottom: 12px;"></i>
+          <h3>Complaint ID "${this.escapeHtml(id)}" Not Found</h3>
+          <p style="color: var(--gray-500); margin-top: 6px;">Please verify the ID or contact your Grama Sachivalayam.</p>
         </div>
       `;
       return;
@@ -423,6 +528,21 @@ class AppController {
     const desc = isTe && complaint.descriptionTe ? complaint.descriptionTe : complaint.description;
     const statusClass = this.getStatusClass(complaint.status);
     const statusLabel = this.getStatusLabel(complaint.status);
+    const complaintEvidence = (complaint.evidence || []).find(item => item.type === 'complaint');
+    const inspectionEvidence = (complaint.evidence || []).filter(item => item.type === 'inspection').reverse();
+    const progressEvidence = (complaint.evidence || []).filter(item => item.type === 'progress').reverse();
+    const resolutionEvidence = (complaint.evidence || []).filter(item => item.type === 'resolution').reverse();
+    const resolvedEvent = (complaint.timeline || []).slice().reverse().find(item => item.status === 'Resolved');
+    const resolvedAt = complaint.resolvedAt || (resolvedEvent && resolvedEvent.timestamp);
+    const renderEvidenceItem = (item, label) => `
+      <img class="evidence-img" src="${this.escapeHtml(item.url)}" alt="${label}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="evidence-unavailable" style="display: none;"><i class="fa-regular fa-image"></i><span>${i18n.t('evidenceUnavailable')}</span></div>
+      <div class="evidence-metadata">
+        ${this.escapeHtml(i18n.t('evidenceUploader'))}: ${this.escapeHtml(item.uploaderId)}
+        <br>${this.escapeHtml(this.formatDate(item.uploadedAt))}
+        ${item.inspectionNotes ? `<br>${this.escapeHtml(item.inspectionNotes)}` : ''}
+      </div>
+    `;
 
     // Stepper progress calculation
     const statusOrder = ['Submitted', 'Assigned', 'In Progress', 'Resolved'];
@@ -573,6 +693,12 @@ class AppController {
             <span class="label" data-i18n="lblOfficerContact">${i18n.t('lblOfficerContact')}</span>
             <span class="value">${this.escapeHtml(complaint.officerContact || '+91 89781 44520')}</span>
           </div>
+          ${complaint.status === 'Resolved' && resolvedAt ? `
+            <div class="dossier-field">
+              <span class="label">Resolved</span>
+              <span class="value">${this.escapeHtml(this.formatDate(resolvedAt))}</span>
+            </div>
+          ` : ''}
         </div>
 
         <!-- Before & After Photographic Evidence Audit Viewer -->
@@ -587,17 +713,39 @@ class AppController {
                 <i class="fa-solid fa-circle-exclamation"></i>
                 <span data-i18n="photoBeforeTitle">${i18n.t('photoBeforeTitle')}</span>
               </div>
-              <img class="evidence-img" src="${complaint.citizenPhoto || this.samplePhotos.pothole}" alt="Before Complaint Evidence">
+              ${complaintEvidence
+                ? renderEvidenceItem(complaintEvidence, 'Original complaint evidence')
+                : `<div class="no-evidence-placeholder"><i class="fa-regular fa-image" style="font-size: 2.2rem;"></i><span data-i18n="noBeforePhoto">${i18n.t('noBeforePhoto')}</span></div>`}
             </div>
+
+            ${inspectionEvidence.length > 0 ? `
+              <div class="evidence-card">
+                <div class="evidence-card-label before">
+                  <i class="fa-solid fa-clipboard-check"></i>
+                  <span>${i18n.t('sectionInspectionPhoto')}</span>
+                </div>
+                ${inspectionEvidence.map(item => renderEvidenceItem(item, 'Officer-submitted inspection evidence')).join('')}
+              </div>
+            ` : ''}
+
+            ${progressEvidence.length > 0 ? `
+              <div class="evidence-card">
+                <div class="evidence-card-label before">
+                  <i class="fa-solid fa-person-digging"></i>
+                  <span>${i18n.t('workInProgressPhotos')}</span>
+                </div>
+                ${progressEvidence.map(item => renderEvidenceItem(item, 'Officer-submitted work-in-progress evidence')).join('')}
+              </div>
+            ` : ''}
 
             <div class="evidence-card">
               <div class="evidence-card-label after">
                 <i class="fa-solid fa-circle-check"></i>
                 <span data-i18n="photoAfterTitle">${i18n.t('photoAfterTitle')}</span>
               </div>
-              ${complaint.resolutionPhoto ? `
-                <img class="evidence-img" src="${complaint.resolutionPhoto}" alt="After Official Resolution Evidence">
-              ` : `
+              ${resolutionEvidence.length > 0
+                ? resolutionEvidence.map(item => renderEvidenceItem(item, 'Officer-submitted resolution evidence')).join('')
+                : `
                 <div class="no-evidence-placeholder">
                   <i class="fa-regular fa-image" style="font-size: 2.2rem;"></i>
                   <span data-i18n="noAfterPhoto">${i18n.t('noAfterPhoto')}</span>
@@ -615,6 +763,12 @@ class AppController {
           <div style="background: var(--gray-50); border-left: 4px solid var(--primary-600); padding: 14px 18px; border-radius: var(--radius-sm); margin: 24px 0;">
             <strong style="color: var(--primary-900); font-size: 0.88rem;"><i class="fa-solid fa-comment-dots"></i> Official Remarks:</strong>
             <p style="font-size: 0.88rem; color: var(--gray-700); margin-top: 4px;">${this.escapeHtml(complaint.officialRemarks)}</p>
+          </div>
+        ` : ''}
+        ${complaint.status === 'Resolved' && complaint.resolutionRemarks ? `
+          <div style="background: var(--primary-50); border-left: 4px solid var(--primary-600); padding: 14px 18px; border-radius: var(--radius-sm); margin: 24px 0;">
+            <strong style="color: var(--primary-900); font-size: 0.88rem;"><i class="fa-solid fa-circle-check"></i> Resolution Remarks:</strong>
+            <p style="font-size: 0.88rem; color: var(--gray-700); margin-top: 4px;">${this.escapeHtml(complaint.resolutionRemarks)}</p>
           </div>
         ` : ''}
 
@@ -671,17 +825,21 @@ class AppController {
     const feedbackInput = document.getElementById('citizen-feedback-text');
     const comment = feedbackInput ? feedbackInput.value.trim() : 'Satisfied';
 
-    await window.dataStore.submitFeedback(this.currentActiveComplaintId, {
-      rating: this.selectedRating,
-      comment: comment,
-      isSatisfied: true,
-      citizenName: 'Rama Rao (రామారావు)'
-    });
+    try {
+      await window.dataStore.submitFeedback(this.currentActiveComplaintId, {
+        rating: this.selectedRating,
+        comment: comment,
+        isSatisfied: true,
+        citizenName: 'Rama Rao (రామారావు)'
+      });
 
-    this.closeModal('modal-feedback');
-    this.showToast('Thank you! Citizen satisfaction rating recorded.', 'success');
-    this.renderTrackingDossier(this.currentActiveComplaintId);
-    this.refreshAllViews();
+      this.closeModal('modal-feedback');
+      this.showToast('Thank you! Citizen satisfaction rating recorded.', 'success');
+      await this.renderTrackingDossier(this.currentActiveComplaintId);
+      await this.refreshAllViews();
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
   }
 
   openReopenModal(id) {
@@ -699,16 +857,20 @@ class AppController {
     const reopenInput = document.getElementById('reopen-reason-input');
     const reason = reopenInput ? reopenInput.value.trim() : 'Repairs unsatisfactory.';
 
-    await window.dataStore.submitFeedback(this.currentActiveComplaintId, {
-      isSatisfied: false,
-      reopenReason: reason,
-      citizenName: 'Rama Rao (రామారావు)'
-    });
+    try {
+      await window.dataStore.submitFeedback(this.currentActiveComplaintId, {
+        isSatisfied: false,
+        reopenReason: reason,
+        citizenName: 'Rama Rao (రామారావు)'
+      });
 
-    this.closeModal('modal-reopen');
-    this.showToast('Grievance reopened and flagged for immediate official re-inspection!', 'warning');
-    this.renderTrackingDossier(this.currentActiveComplaintId);
-    this.refreshAllViews();
+      this.closeModal('modal-reopen');
+      this.showToast('Grievance reopened and flagged for immediate official re-inspection!', 'warning');
+      await this.renderTrackingDossier(this.currentActiveComplaintId);
+      await this.refreshAllViews();
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
   }
 
   /* ==========================================================================
@@ -717,6 +879,7 @@ class AppController {
   async renderOfficialTable() {
     const tbody = document.getElementById('official-complaints-tbody');
     if (!tbody) return;
+    if (!this.updatePortalAccess('official')) return;
 
     const searchInput = document.getElementById('official-search-input');
     const catFilter = document.getElementById('official-cat-filter');
@@ -728,7 +891,9 @@ class AppController {
       status: statusFilter ? statusFilter.value : 'all'
     };
 
-    const complaints = await window.dataStore.getAllComplaints(filters);
+    await window.dataStore.getPortalDashboard('GRAMA_SACHIVALAYAM');
+    const complaints = (await window.dataStore.getAllComplaints(filters, true))
+      .filter(complaint => complaint.status !== 'FORWARDED_TO_DISTRICT');
 
     if (complaints.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--gray-500);">No complaints matching current filters.</td></tr>`;
@@ -741,8 +906,17 @@ class AppController {
       const title = isTe && c.titleTe ? c.titleTe : c.title;
       const statusPillClass = this.getStatusClass(c.status);
       const statusLabel = this.getStatusLabel(c.status);
+      const canForwardToDistrict = ![
+        'FORWARDED_TO_DISTRICT',
+        'DISTRICT_ESCALATED',
+        'URGENT_ESCALATION',
+        'Resolved'
+      ].includes(c.status) && c.assignedDepartment && c.assignedDepartment !== 'Pending Assignment';
 
       let slaClock = `<span style="color: var(--primary-700); font-weight: 600;"><i class="fa-regular fa-clock"></i> 72h SLA Active</span>`;
+      if (c.urgentEscalation && c.urgentEscalation.deadlineAt && c.status !== 'Resolved') {
+        slaClock = `<span style="color: var(--primary-700); font-weight: 600;">24h deadline: ${this.escapeHtml(this.formatDate(c.urgentEscalation.deadlineAt))}</span>`;
+      }
       if (c.isOverdue && c.status !== 'Resolved') {
         slaClock = `<span class="status-pill status-overdue"><i class="fa-solid fa-triangle-exclamation"></i> OVERDUE</span>`;
       }
@@ -754,7 +928,7 @@ class AppController {
         <tr>
           <td><span class="id-badge">${c.id}</span></td>
           <td>
-            <strong>${this.escapeHtml(c.citizenName)}</strong>
+            <strong>${c.isHackathonSample ? 'Citizen details unavailable' : this.escapeHtml(c.citizenName)}</strong>
             <p style="font-size: 0.75rem; color: var(--gray-500);">${this.escapeHtml(c.ward || c.village)}</p>
           </td>
           <td>
@@ -769,6 +943,11 @@ class AppController {
               <i class="fa-solid fa-pen-to-square"></i>
               <span data-i18n="btnReviewAction">${i18n.t('btnReviewAction')}</span>
             </button>
+            ${canForwardToDistrict ? `
+              <button class="btn-dash-outline" style="margin-top: 6px;" onclick="app.openForwardToDistrictModal('${this.escapeHtml(c.id)}')">
+                Forward to District
+              </button>
+            ` : ''}
           </td>
         </tr>
       `;
@@ -785,8 +964,168 @@ class AppController {
     this.showToast('Grama Sachivalayam live feed refreshed', 'success');
   }
 
+  openOfficerRegistrationModal() {
+    ['register-admin-username', 'register-admin-password', 'register-officer-username', 'register-officer-password']
+      .forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+    document.getElementById('register-officer-role').value = 'GRAMA_SACHIVALAYAM';
+    document.getElementById('register-officer-active').value = 'true';
+    const accountList = document.getElementById('managed-account-list');
+    if (accountList) accountList.textContent = '';
+    this.openModal('modal-officer-registration');
+  }
+
+  async registerOfficerFromAdmin() {
+    const previousAuthToken = window.dataStore.authToken;
+    const previousAuthUser = window.dataStore.authUser;
+    const adminUsername = document.getElementById('register-admin-username').value.trim();
+    const adminPasswordInput = document.getElementById('register-admin-password');
+    const officerUsername = document.getElementById('register-officer-username').value.trim();
+    const officerPasswordInput = document.getElementById('register-officer-password');
+    const role = document.getElementById('register-officer-role').value;
+    const active = document.getElementById('register-officer-active').value === 'true';
+    const department = document.getElementById('register-officer-department').value;
+    const adminPassword = adminPasswordInput.value;
+    const officerPassword = officerPasswordInput.value;
+
+    if (!adminUsername || !adminPassword || !officerUsername || !officerPassword) {
+      this.showToast('Enter the ADMIN credentials and all new account details.', 'error');
+      return;
+    }
+
+    try {
+      const login = await window.dataStore.login(adminUsername, adminPassword);
+      if (login.user.role !== 'ADMIN') {
+        throw new Error('Only an ADMIN account can manage government accounts.');
+      }
+      const officer = await window.dataStore.registerOfficer({
+        username: officerUsername,
+        password: officerPassword,
+        department: ['OFFICER', 'GRAMA_SACHIVALAYAM'].includes(role) ? department : '',
+        role,
+        active
+      }, login.accessToken);
+      adminPasswordInput.value = '';
+      officerPasswordInput.value = '';
+      document.getElementById('register-officer-username').value = '';
+      this.showToast(`${officer.role} account ${officer.username} created (${officer.active ? 'active' : 'inactive'}).`, 'success');
+      const accounts = await window.dataStore.getAccounts(login.accessToken);
+      this.renderManagedAccounts(accounts);
+    } catch (error) {
+      adminPasswordInput.value = '';
+      officerPasswordInput.value = '';
+      this.showToast(error.message, 'error');
+    } finally {
+      if (previousAuthUser && previousAuthUser.role !== 'ADMIN') {
+        window.dataStore.authToken = previousAuthToken;
+        window.dataStore.authUser = previousAuthUser;
+      }
+    }
+  }
+
+  async loadManagedAccounts() {
+    const previousAuthToken = window.dataStore.authToken;
+    const previousAuthUser = window.dataStore.authUser;
+    const adminUsername = document.getElementById('register-admin-username').value.trim();
+    const adminPasswordInput = document.getElementById('register-admin-password');
+    const adminPassword = adminPasswordInput.value;
+    if (!adminUsername || !adminPassword) {
+      this.showToast('Enter ADMIN credentials to manage accounts.', 'error');
+      return;
+    }
+
+    try {
+      const login = await window.dataStore.login(adminUsername, adminPassword);
+      if (login.user.role !== 'ADMIN') throw new Error('Only an ADMIN account can manage government accounts.');
+      const accounts = await window.dataStore.getAccounts(login.accessToken);
+      this.renderManagedAccounts(accounts);
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    } finally {
+      adminPasswordInput.value = '';
+      if (previousAuthUser && previousAuthUser.role !== 'ADMIN') {
+        window.dataStore.authToken = previousAuthToken;
+        window.dataStore.authUser = previousAuthUser;
+      }
+    }
+  }
+
+  renderManagedAccounts(accounts) {
+    const list = document.getElementById('managed-account-list');
+    if (!list) return;
+    list.innerHTML = accounts.map(account => `
+      <div class="managed-account-row">
+        <span><strong>${this.escapeHtml(account.username)}</strong> · ${this.escapeHtml(account.role)} · ${account.active ? 'Active' : 'Inactive'}</span>
+        <div>
+          <button type="button" class="btn-dash-outline" data-account-status="${this.escapeHtml(account.username)}" data-next-active="${!account.active}">
+            ${account.active ? 'Deactivate' : 'Activate'}
+          </button>
+          <button type="button" class="btn-dash-outline" data-account-reset="${this.escapeHtml(account.username)}">
+            Reset Password
+          </button>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-account-status]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.setManagedAccountStatus(button.dataset.accountStatus, button.dataset.nextActive === 'true');
+      });
+    });
+    list.querySelectorAll('[data-account-reset]').forEach(button => {
+      button.addEventListener('click', () => {
+        this.resetManagedAccountPassword(button.dataset.accountReset);
+      });
+    });
+  }
+
+  async resetManagedAccountPassword(username) {
+    const passwordInput = document.getElementById('reset-account-password');
+    const password = passwordInput ? passwordInput.value : '';
+    const adminToken = window.dataStore.adminToken;
+    if (!adminToken) {
+      this.showToast('Sign in with an ADMIN account to reset passwords.', 'error');
+      return;
+    }
+    if (password.length < 12) {
+      this.showToast('Use a password of at least 12 characters.', 'error');
+      return;
+    }
+    try {
+      await window.dataStore.resetAccountPassword(username, password, adminToken);
+      if (passwordInput) passwordInput.value = '';
+      this.showToast(`Password reset for ${username}.`, 'success');
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
+  }
+
+  async setManagedAccountStatus(username, active) {
+    const adminToken = window.dataStore.adminToken;
+    if (!adminToken) {
+      this.showToast('Sign in with an ADMIN account to change account status.', 'error');
+      return;
+    }
+    try {
+      await window.dataStore.setAccountActive(username, active, adminToken);
+      const accounts = await window.dataStore.getAccounts(adminToken);
+      this.renderManagedAccounts(accounts);
+      this.showToast(`${username} is now ${active ? 'active' : 'inactive'}.`, 'success');
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
+  }
+
   async openOfficialActionModal(id) {
+    if (!window.dataStore.authUser || window.dataStore.authUser.role !== 'GRAMA_SACHIVALAYAM') {
+      this.showToast('Sign in with a Grama Sachivalayam account to update complaints.', 'error');
+      return;
+    }
     this.activeActionComplaintId = id;
+    this.pendingInspectionFile = null;
+    this.pendingProgressFile = null;
+    this.pendingResolutionFile = null;
     const complaint = await window.dataStore.getComplaintById(id);
     if (!complaint) return;
 
@@ -808,14 +1147,18 @@ class AppController {
         <p style="font-size: 0.82rem; color: var(--gray-600); margin-top: 4px;">${this.escapeHtml(desc)}</p>
 
         <div style="display: flex; gap: 16px; margin-top: 10px; font-size: 0.78rem; color: var(--gray-500);">
-          <span><i class="fa-solid fa-user"></i> ${this.escapeHtml(complaint.citizenName)} (${complaint.citizenPhone})</span>
+          ${complaint.isHackathonSample
+            ? '<span>Citizen contact details unavailable.</span>'
+            : `<span><i class="fa-solid fa-user"></i> ${this.escapeHtml(complaint.citizenName)} (${this.escapeHtml(complaint.citizenPhone)})</span>`}
           <span><i class="fa-solid fa-location-dot"></i> ${this.escapeHtml(complaint.landmark)}, ${this.escapeHtml(complaint.ward)}</span>
         </div>
 
-        ${complaint.citizenPhoto ? `
+        ${(complaint.evidence || []).some(item => item.type === 'complaint') ? `
           <div style="margin-top: 12px;">
             <span style="font-size: 0.75rem; font-weight: 700; color: var(--gray-600);">Citizen Defect Photo:</span>
-            <img src="${complaint.citizenPhoto}" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--radius-sm); margin-top: 4px; display: block;" alt="Defect Photo">
+            ${(complaint.evidence || []).filter(item => item.type === 'complaint').map(item => `
+              <img src="${this.escapeHtml(item.url)}" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--radius-sm); margin-top: 4px; display: block;" alt="Original complaint evidence">
+            `).join('')}
           </div>
         ` : ''}
       </div>
@@ -851,52 +1194,132 @@ class AppController {
           <option value="Assigned" ${complaint.status === 'Assigned' ? 'selected' : ''}>Assigned (విభాగానికి కేటాయించబడింది)</option>
           <option value="In Progress" ${complaint.status === 'In Progress' ? 'selected' : ''}>In Progress (మరమ్మతు పనులు ప్రారంభమయ్యాయి)</option>
           <option value="Resolved" ${complaint.status === 'Resolved' ? 'selected' : ''}>Resolved (పూర్తయింది - పరిష్కార ఫోటోతో)</option>
+          <option value="DISTRICT_ESCALATED" ${complaint.status === 'DISTRICT_ESCALATED' ? 'selected' : ''}>District return to Grama (24h)</option>
+          <option value="URGENT_ESCALATION" ${complaint.status === 'URGENT_ESCALATION' ? 'selected' : ''}>Legacy District return (24h)</option>
         </select>
       </div>
 
       <!-- 3. Official Remarks -->
       <div class="form-group">
-        <label style="font-weight: 700; color: var(--primary-900);">${i18n.t('sectionRemarks')}</label>
-        <textarea id="modal-official-remarks" class="form-textarea" placeholder="${i18n.t('remarksPlaceholder')}">${this.escapeHtml(complaint.officialRemarks || '')}</textarea>
+        <label style="font-weight: 700; color: var(--primary-900);">${i18n.t('sectionRemarks')}${complaint.status === 'DISTRICT_ESCALATED' || complaint.status === 'URGENT_ESCALATION' ? ' (resolution remarks required)' : ''}</label>
+        <textarea id="modal-official-remarks" class="form-textarea" maxlength="4000" placeholder="${i18n.t('remarksPlaceholder')}">${this.escapeHtml(complaint.inspectionNotes || complaint.officialRemarks || '')}</textarea>
       </div>
 
-      <!-- 4. Resolution Photograph Upload -->
+      <!-- 4. Inspection Evidence Upload -->
+      <div class="form-group">
+        <label style="font-weight: 700; color: var(--primary-900);">${i18n.t('sectionInspectionPhoto')}</label>
+        <p style="font-size: 0.78rem; color: var(--gray-500); margin-bottom: 6px;">${i18n.t('inspectionPhotoUploadHint')}</p>
+        <input type="file" id="modal-inspection-file" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onchange="app.handleInspectionEvidenceChange(event)">
+        <p id="inspection-evidence-file-name" style="font-size: 0.78rem; color: var(--gray-600); margin-top: 6px;">${i18n.t('noInspectionFileSelected')}</p>
+      </div>
+
+      <div class="form-group">
+        <label style="font-weight: 700; color: var(--primary-900);">${i18n.t('workInProgressPhoto')}</label>
+        <p style="font-size: 0.78rem; color: var(--gray-500); margin-bottom: 6px;">${i18n.t('workInProgressPhotoHint')}</p>
+        <input type="file" id="modal-progress-file" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onchange="app.handleProgressEvidenceChange(event)">
+        <p id="progress-evidence-file-name" style="font-size: 0.78rem; color: var(--gray-600); margin-top: 6px;">${i18n.t('noProgressFileSelected')}</p>
+      </div>
+
+      <!-- 5. Resolution Evidence Upload -->
       <div class="form-group">
         <label style="font-weight: 700; color: var(--primary-900);">${i18n.t('sectionResolutionPhoto')}</label>
         <p style="font-size: 0.78rem; color: var(--gray-500); margin-bottom: 6px;">${i18n.t('resPhotoUploadHint')}</p>
-        
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
-          <span style="font-size: 0.72rem; font-weight: 700; color: var(--gray-600); align-self: center;">${i18n.t('quickResPhotos')}</span>
-          <button type="button" class="sample-photo-btn" onclick="app.setModalResPhoto('road')">🛣️ ${i18n.t('resRepavedRoad')}</button>
-          <button type="button" class="sample-photo-btn" onclick="app.setModalResPhoto('pipe')">💧 ${i18n.t('resFixedPipe')}</button>
-          <button type="button" class="sample-photo-btn" onclick="app.setModalResPhoto('power')">⚡ ${i18n.t('resFixedPower')}</button>
-          <button type="button" class="sample-photo-btn" onclick="app.setModalResPhoto('clean')">🧹 ${i18n.t('resCleanedGround')}</button>
-        </div>
-
-        <input type="text" id="modal-res-photo-url" class="form-input" placeholder="Resolution Photo URL..." value="${complaint.resolutionPhoto || this.sampleResolutionPhotos.road}">
+        <input type="file" id="modal-resolution-file" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onchange="app.handleResolutionEvidenceChange(event)">
+        <p id="resolution-evidence-file-name" style="font-size: 0.78rem; color: var(--gray-600); margin-top: 6px;">${i18n.t('noResolutionFileSelected')}</p>
       </div>
     `;
 
     this.openModal('modal-official-action');
   }
 
-  setModalResPhoto(type) {
-    const input = document.getElementById('modal-res-photo-url');
-    if (input && this.sampleResolutionPhotos[type]) {
-      input.value = this.sampleResolutionPhotos[type];
-      this.showToast('Resolution proof photo attached', 'success');
+  handleResolutionEvidenceChange(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      this.pendingResolutionFile = null;
+      return;
     }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      event.target.value = '';
+      this.pendingResolutionFile = null;
+      this.showToast('Choose a JPEG, PNG, or WebP image.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      event.target.value = '';
+      this.pendingResolutionFile = null;
+      this.showToast('Image is too large. Maximum upload size is 5 MB.', 'error');
+      return;
+    }
+
+    this.pendingResolutionFile = file;
+    const fileName = document.getElementById('resolution-evidence-file-name');
+    if (fileName) fileName.textContent = file.name;
+  }
+
+  handleInspectionEvidenceChange(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      this.pendingInspectionFile = null;
+      return;
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      event.target.value = '';
+      this.pendingInspectionFile = null;
+      this.showToast('Choose a JPEG, PNG, or WebP image.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      event.target.value = '';
+      this.pendingInspectionFile = null;
+      this.showToast('Image is too large. Maximum upload size is 5 MB.', 'error');
+      return;
+    }
+
+    this.pendingInspectionFile = file;
+    const fileName = document.getElementById('inspection-evidence-file-name');
+    if (fileName) fileName.textContent = file.name;
+  }
+
+  handleProgressEvidenceChange(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      this.pendingProgressFile = null;
+      return;
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      event.target.value = '';
+      this.pendingProgressFile = null;
+      this.showToast('Choose a JPEG, PNG, or WebP image.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      event.target.value = '';
+      this.pendingProgressFile = null;
+      this.showToast('Image is too large. Maximum upload size is 5 MB.', 'error');
+      return;
+    }
+
+    this.pendingProgressFile = file;
+    const fileName = document.getElementById('progress-evidence-file-name');
+    if (fileName) fileName.textContent = file.name;
   }
 
   async saveOfficialAction() {
     if (!this.activeActionComplaintId) return;
+    if (!window.dataStore.authUser || window.dataStore.authUser.role !== 'GRAMA_SACHIVALAYAM') {
+      this.showToast('Sign in with a Grama Sachivalayam account to update complaints.', 'error');
+      return;
+    }
 
     const deptSelect = document.getElementById('modal-assign-dept');
     const officerInput = document.getElementById('modal-assign-officer');
     const phoneInput = document.getElementById('modal-assign-phone');
     const statusSelect = document.getElementById('modal-status-select');
     const remarksInput = document.getElementById('modal-official-remarks');
-    const photoUrlInput = document.getElementById('modal-res-photo-url');
+    const inspectionNotes = remarksInput ? remarksInput.value.trim() : '';
 
     const updates = {
       assignedDepartment: deptSelect ? deptSelect.value : undefined,
@@ -904,24 +1327,53 @@ class AppController {
       officerContact: phoneInput ? phoneInput.value.trim() : undefined,
       status: statusSelect ? statusSelect.value : undefined,
       officialRemarks: remarksInput ? remarksInput.value.trim() : undefined,
-      resolutionPhoto: photoUrlInput ? photoUrlInput.value.trim() : undefined,
-      resolutionRemarks: remarksInput ? remarksInput.value.trim() : undefined,
-      actionActor: 'Panchayat Secretary (V. Srikanth)'
+      resolutionRemarks: remarksInput ? remarksInput.value.trim() : undefined
     };
 
-    // If marked resolved, ensure a resolution photo is present
-    if (updates.status === 'Resolved' && !updates.resolutionPhoto) {
-      updates.resolutionPhoto = this.sampleResolutionPhotos.road;
+    if (this.pendingInspectionFile && !inspectionNotes) {
+      this.showToast(i18n.t('inspectionNotesRequired'), 'error');
+      return;
     }
 
-    await window.dataStore.updateComplaint(this.activeActionComplaintId, updates);
-    this.closeModal('modal-official-action');
-    this.showToast(`Complaint ${this.activeActionComplaintId} updated: Status transitioned to ${updates.status}`, 'success');
+    try {
+      if (this.pendingInspectionFile) {
+        await window.dataStore.uploadEvidence(
+          this.activeActionComplaintId,
+          'inspection',
+          this.pendingInspectionFile,
+          undefined,
+          inspectionNotes
+        );
+      }
 
-    this.renderOfficialTable();
-    this.updateStatsCounters();
-    if (this.currentActiveComplaintId === this.activeActionComplaintId) {
-      this.renderTrackingDossier(this.currentActiveComplaintId);
+      if (this.pendingProgressFile) {
+        await window.dataStore.uploadEvidence(
+          this.activeActionComplaintId,
+          'progress',
+          this.pendingProgressFile
+        );
+      }
+
+      if (this.pendingResolutionFile) {
+        await window.dataStore.uploadEvidence(
+          this.activeActionComplaintId,
+          'resolution',
+          this.pendingResolutionFile
+        );
+      }
+
+      const updatedComplaint = await window.dataStore.updateComplaint(this.activeActionComplaintId, updates);
+      if (!updatedComplaint) {
+        throw new Error('The server did not return the updated complaint.');
+      }
+      this.closeModal('modal-official-action');
+      this.showToast(`Complaint ${this.activeActionComplaintId} updated successfully.`, 'success');
+      await this.refreshAllViews();
+      if (this.currentActiveComplaintId === this.activeActionComplaintId) {
+        await this.renderTrackingDossier(this.currentActiveComplaintId);
+      }
+    } catch (error) {
+      this.showToast(error.message, 'error');
     }
   }
 
@@ -931,14 +1383,21 @@ class AppController {
   async renderAuthorityConsole() {
     const chamberList = document.getElementById('overdue-chamber-list');
     const overdueBadge = document.getElementById('overdue-pill-badge');
-    const breachStat = document.getElementById('auth-breach-count');
     if (!chamberList) return;
+    if (!this.updatePortalAccess('authority')) return;
 
-    const complaints = await window.dataStore.getAllComplaints();
-    const overdueItems = complaints.filter(c => (c.isOverdue || c.status === 'Escalated') && c.status !== 'Resolved');
+    await this.renderDistrictReviewQueue();
+    const complaints = await window.dataStore.getPortalDashboard('DISTRICT_AUTHORITY');
+    this.updateDistrictDashboardStats(complaints);
+    this.renderDistrictComplaints(complaints);
+    const overdueItems = complaints.filter(c =>
+      (c.isOverdue || c.status === 'Escalated') &&
+      c.status !== 'Resolved' &&
+      c.status !== 'FORWARDED_TO_DISTRICT' &&
+      !c.urgentEscalation
+    );
 
     if (overdueBadge) overdueBadge.textContent = `${overdueItems.length} Urgent Escalation Items`;
-    if (breachStat) breachStat.textContent = overdueItems.length;
 
     if (overdueItems.length === 0) {
       chamberList.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--primary-700);"><i class="fa-solid fa-shield-heart" style="font-size: 1.8rem; margin-bottom: 8px;"></i><br>All rural grievances are strictly within statutory SLA deadlines. Zero critical breaches.</div>`;
@@ -960,11 +1419,11 @@ class AppController {
               ${isAlreadyEscalated ? `<span class="status-pill status-escalated"><i class="fa-solid fa-gavel"></i> COLLECTOR MANDATE ACTIVE</span>` : ''}
             </div>
             <h4>${this.escapeHtml(title)}</h4>
-            <p>${this.escapeHtml(c.assignedDepartment)} | Filed by: ${this.escapeHtml(c.citizenName)} at ${this.escapeHtml(c.ward || c.village)}</p>
+            <p>${this.escapeHtml(c.assignedDepartment)} | ${c.isHackathonSample ? 'Citizen details unavailable' : `Filed by: ${this.escapeHtml(c.citizenName)}`} at ${this.escapeHtml(c.ward || c.village)}</p>
           </div>
           <div>
             ${isAlreadyEscalated ? `
-              <button class="btn-dash-outline" style="border-color: var(--accent-red); color: var(--accent-red); font-size: 0.8rem;" onclick="app.trackDirectId('${c.id}')">
+              <button class="btn-dash-outline" style="border-color: var(--accent-red); color: var(--accent-red); font-size: 0.8rem;" onclick="app.viewOrder('${c.id}')">
                 <i class="fa-solid fa-eye"></i> View Order
               </button>
             ` : `
@@ -979,14 +1438,395 @@ class AppController {
     }).join('');
   }
 
+  async viewOrder(id, isDistrictReview = false) {
+    const content = document.getElementById('order-details-content');
+    if (!content) {
+      this.showToast('The order details view is unavailable. Please reload the application.', 'error');
+      return;
+    }
+
+    content.innerHTML = '<p role="status">Loading order details...</p>';
+    this.openModal('modal-order-details');
+
+    try {
+      const complaint = isDistrictReview
+        ? await window.dataStore.getDistrictReview(id)
+        : await window.dataStore.getOrderDetails(id);
+      if (!complaint) {
+        content.innerHTML = `
+          <div class="order-message" role="status">
+            <h4>No order is available</h4>
+            <p>No complaint or order was found for ID "${this.escapeHtml(id)}". Check the ID and try again.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const escalation = (complaint.timeline || []).slice().reverse()
+        .find(item => item.status === 'Escalated');
+      if (!isDistrictReview && !escalation) {
+        content.innerHTML = `
+          <div class="order-message" role="status">
+            <h4>No order is available</h4>
+            <p>Complaint ${this.escapeHtml(complaint.id)} does not have a District Authority escalation order.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const location = [
+        complaint.landmark,
+        complaint.ward,
+        complaint.village,
+        complaint.gpsCoordinates
+      ].filter(Boolean).join(', ') || 'Location not provided';
+      const reviewDirective = isDistrictReview
+        ? complaint.districtReviewReason
+        : escalation.note;
+      const reviewIssuer = isDistrictReview ? complaint.source : escalation.actor;
+      const orderTimestamp = isDistrictReview
+        ? (complaint.forwardedAt || complaint.districtReviewReceivedAt)
+        : escalation.timestamp;
+      const timeline = (complaint.timeline || []).map(item => `
+        <li class="order-timeline-item">
+          <div>
+            <strong>${this.escapeHtml(item.status || 'Update')}</strong>
+            <span>${this.escapeHtml(item.actor || 'System')}</span>
+          </div>
+          <time>${this.escapeHtml(this.formatDate(item.timestamp) || 'Timestamp unavailable')}</time>
+          ${item.note ? `<p>${this.escapeHtml(item.note)}</p>` : ''}
+        </li>
+      `).join('');
+      const evidence = (complaint.evidence || []).map(item => `
+        <a class="evidence-thumbnail" href="${this.escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
+          <img src="${this.escapeHtml(item.url)}" alt="${this.escapeHtml(`${item.type || 'Complaint'} evidence`)}">
+          <span>${this.escapeHtml(item.type || 'Evidence')}</span>
+        </a>
+      `).join('');
+
+      content.innerHTML = `
+        <div class="order-summary">
+          <div class="order-complaint-heading">
+            <span class="id-badge">${this.escapeHtml(complaint.id)}</span>
+            <span class="status-pill ${this.getStatusClass(complaint.status)}">${this.escapeHtml(this.getStatusLabel(complaint.status))}</span>
+          </div>
+          <p>${this.escapeHtml(complaint.description || 'No description provided.')}</p>
+        </div>
+        <div class="dossier-grid">
+          <div class="dossier-field">
+            <span class="label">Location</span>
+            <span class="value">${this.escapeHtml(location)}</span>
+          </div>
+          <div class="dossier-field">
+            <span class="label">Assigned Department</span>
+            <span class="value">${this.escapeHtml(complaint.assignedDepartment || 'Pending Assignment')}</span>
+          </div>
+          <div class="dossier-field">
+            <span class="label">Assigned Officer</span>
+            <span class="value">${this.escapeHtml(complaint.assignedOfficer || 'Unassigned')}</span>
+          </div>
+          <div class="dossier-field">
+            <span class="label">Officer Contact</span>
+            <span class="value">${this.escapeHtml(complaint.officerContact || 'Not provided')}</span>
+          </div>
+          <div class="dossier-field">
+            <span class="label">Complaint Filed</span>
+            <span class="value">${this.escapeHtml(this.formatDate(complaint.createdAt) || 'Timestamp unavailable')}</span>
+          </div>
+          <div class="dossier-field">
+            <span class="label">${isDistrictReview ? 'Forwarded for Review' : 'Order Issued'}</span>
+            <span class="value">${this.escapeHtml(isDistrictReview
+              ? this.formatForwardedAt(complaint)
+              : (this.formatDate(orderTimestamp) || 'Timestamp unavailable'))}</span>
+          </div>
+          ${isDistrictReview ? `
+            <div class="dossier-field">
+              <span class="label">Source</span>
+              <span class="value">${this.escapeHtml(complaint.source || 'Unknown')}</span>
+            </div>
+          ` : ''}
+        </div>
+        <section class="order-directive">
+          <h4>${isDistrictReview ? 'Reason for District Review' : 'District Authority Directive'}</h4>
+          <p>${this.escapeHtml(reviewDirective || 'No directive details were recorded.')}</p>
+          <span>${isDistrictReview ? 'Forwarded by' : 'Issued by'} ${this.escapeHtml(reviewIssuer || 'District Authority')}</span>
+        </section>
+        ${isDistrictReview && complaint.districtAuthorityRemarks ? `
+          <section class="order-directive">
+            <h4>District Authority Review Remarks</h4>
+            <p>${this.escapeHtml(complaint.districtAuthorityRemarks)}</p>
+            <span>Escalated ${this.escapeHtml(this.formatDate(complaint.districtEscalatedAt) || 'Timestamp unavailable')}</span>
+          </section>
+        ` : ''}
+        <section>
+          <h4 class="order-timeline-heading">Complaint Evidence</h4>
+          ${evidence
+            ? `<div class="order-evidence-list">${evidence}</div>`
+            : '<p>No evidence photos are attached to this complaint.</p>'}
+        </section>
+        <section>
+          <h4 class="order-timeline-heading">Complaint and Order Timestamps</h4>
+          ${timeline
+            ? `<ol class="order-timeline">${timeline}</ol>`
+            : '<p>No status timestamps are available for this complaint.</p>'}
+        </section>
+      `;
+    } catch (error) {
+      content.innerHTML = `
+        <div class="order-message order-message-error" role="alert">
+          <h4>Unable to load order details</h4>
+          <p>${this.escapeHtml(error.message || 'The order details request failed. Please try again.')}</p>
+        </div>
+      `;
+    }
+  }
+
+  async loadDistrictReviews() {
+    if (!window.dataStore.authUser || window.dataStore.authUser.role !== 'DISTRICT_AUTHORITY') {
+      this.showToast('Sign in with a District Authority account to view pending reviews.', 'error');
+      return;
+    }
+    await this.renderDistrictReviewQueue();
+  }
+
+  async renderDistrictReviewQueue() {
+    const list = document.getElementById('district-review-list');
+    const count = document.getElementById('district-review-count');
+    if (!list) return;
+    const user = window.dataStore.authUser;
+    if (!user || !['ADMIN', 'DISTRICT_AUTHORITY'].includes(user.role)) {
+      if (count) count.textContent = 'Sign in required';
+      list.textContent = 'Sign in with an ADMIN account to view District Authority reviews.';
+      return;
+    }
+
+    try {
+      const reviews = await window.dataStore.getDistrictReviews();
+      if (count) count.textContent = `${reviews.length} Pending Review${reviews.length === 1 ? '' : 's'}`;
+      if (reviews.length === 0) {
+        list.innerHTML = '<p class="empty-queue-message">There are no complaints awaiting District Authority review.</p>';
+        return;
+      }
+      list.innerHTML = reviews.map(complaint => `
+        <article class="district-review-item">
+          <div class="district-review-item-main">
+            <div class="order-complaint-heading">
+              <span class="id-badge">${this.escapeHtml(complaint.id)}</span>
+              <span class="status-pill status-forwarded">FORWARDED TO DISTRICT</span>
+              <span class="status-pill ${complaint.priority === 'High' ? 'status-high-priority' : ''}">${this.escapeHtml(complaint.priority || 'Unspecified')} PRIORITY</span>
+            </div>
+            <h4>${this.escapeHtml(complaint.title)}</h4>
+            <p>${this.escapeHtml(complaint.category)} | ${this.escapeHtml(complaint.assignedDepartment)}</p>
+            <p><strong>Submitted:</strong> ${this.escapeHtml(this.formatDate(complaint.createdAt) || 'Timestamp unavailable')} | <strong>Forwarded:</strong> ${this.escapeHtml(this.formatForwardedAt(complaint))}</p>
+            <p><strong>Source:</strong> ${this.escapeHtml(complaint.source || 'Unknown')}</p>
+            <p><strong>Review reason:</strong> ${this.escapeHtml(complaint.districtReviewReason || 'No reason provided.')}</p>
+          </div>
+          <div class="district-review-actions">
+            <button type="button" class="btn-dash-outline" onclick="app.viewOrder('${this.escapeHtml(complaint.id)}', true)">View Order</button>
+            <button type="button" class="btn-escalate-action" onclick="app.openReturnToVillageModal('${this.escapeHtml(complaint.id)}')">Escalate to Grama Sachivalayam</button>
+          </div>
+        </article>
+      `).join('');
+    } catch (error) {
+      if (count) count.textContent = 'Reviews unavailable';
+      list.innerHTML = `<p class="order-message-error" role="alert">${this.escapeHtml(error.message)}</p>`;
+    }
+  }
+
+  updateDistrictDashboardStats(complaints) {
+    const districtComplaints = complaints.filter(complaint =>
+      complaint.forwardedAt || complaint.districtReviewReceivedAt
+    );
+    const counts = {
+      total: complaints.length,
+      pending: districtComplaints.filter(complaint => complaint.status === 'FORWARDED_TO_DISTRICT').length,
+      escalated: districtComplaints.filter(complaint =>
+        complaint.status === 'DISTRICT_ESCALATED' || complaint.status === 'URGENT_ESCALATION'
+      ).length,
+      resolved: complaints.filter(complaint => complaint.status === 'Resolved').length,
+      overdue: complaints.filter(complaint => complaint.isOverdue && complaint.status !== 'Resolved').length
+    };
+    const values = {
+      'district-total-count': counts.total,
+      'district-pending-count': counts.pending,
+      'district-escalated-count': counts.escalated,
+      'district-resolved-count': counts.resolved,
+      'auth-breach-count': counts.overdue
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = value;
+    });
+  }
+
+  renderDistrictComplaints(complaints) {
+    const tbody = document.getElementById('district-complaints-tbody');
+    if (!tbody) return;
+    const districtComplaints = complaints
+      .filter(complaint => complaint.forwardedAt || complaint.districtReviewReceivedAt)
+      .sort((a, b) => {
+        const aTime = Date.parse(a.forwardedAt || a.districtReviewReceivedAt) || 0;
+        const bTime = Date.parse(b.forwardedAt || b.districtReviewReceivedAt) || 0;
+        return bTime - aTime;
+      });
+
+    if (districtComplaints.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="empty-queue-message">No complaints have been forwarded to District Authority.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = districtComplaints.map(complaint => `
+      <tr>
+        <td><span class="id-badge">${this.escapeHtml(complaint.id)}</span></td>
+        <td>
+          <strong>${this.escapeHtml(complaint.title || 'Untitled complaint')}</strong>
+          ${complaint.isHackathonSample ? '<p class="sample-data-label">SAMPLE / HACKATHON TEST DATA</p>' : ''}
+        </td>
+        <td>${this.escapeHtml([complaint.village, complaint.landmark || complaint.ward].filter(Boolean).join(' • ') || 'Location unavailable')}</td>
+        <td>${this.escapeHtml(complaint.assignedDepartment || 'Pending Assignment')}</td>
+        <td>${this.escapeHtml(complaint.priority || 'Unspecified')}</td>
+        <td>${this.escapeHtml(this.formatDate(complaint.createdAt) || 'Timestamp unavailable')}</td>
+        <td>${this.escapeHtml(this.formatForwardedAt(complaint))}</td>
+        <td>${this.escapeHtml(complaint.assignedOfficer || 'Unassigned')}</td>
+        <td>
+          <span class="status-pill ${this.getStatusClass(complaint.status)}">${this.escapeHtml(this.getStatusLabel(complaint.status))}</span>
+          ${complaint.urgentEscalation && complaint.urgentEscalation.deadlineAt
+            ? `<p class="district-resolution-deadline">24h deadline: ${this.escapeHtml(this.formatDate(complaint.urgentEscalation.deadlineAt))}</p>`
+            : ''}
+        </td>
+        <td>
+          <button type="button" class="btn-dash-outline" onclick="app.viewOrder('${this.escapeHtml(complaint.id)}', true)">View Order</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  openForwardToDistrictModal(id) {
+    const user = window.dataStore.authUser;
+    if (!user || user.role !== 'GRAMA_SACHIVALAYAM') {
+      this.showToast('Sign in with a Grama Sachivalayam account before forwarding a complaint.', 'error');
+      return;
+    }
+    this.activeActionComplaintId = id;
+    const reason = document.getElementById('district-forward-reason');
+    if (reason) reason.value = '';
+    this.openModal('modal-forward-to-district');
+  }
+
+  async confirmForwardToDistrict() {
+    if (!this.activeActionComplaintId) return;
+    const reasonInput = document.getElementById('district-forward-reason');
+    const reason = reasonInput ? reasonInput.value.trim() : '';
+    if (!reason) {
+      this.showToast('Enter a reason before forwarding this complaint.', 'warning');
+      return;
+    }
+
+    try {
+      await window.dataStore.forwardComplaintToDistrict(this.activeActionComplaintId, reason);
+      this.closeModal('modal-forward-to-district');
+      this.showToast('Complaint forwarded to District Authority for review.', 'success');
+      await this.refreshAllViews();
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
+  }
+
+  openReturnToVillageModal(id) {
+    const user = window.dataStore.authUser;
+    if (!user || !['DISTRICT_AUTHORITY', 'ADMIN'].includes(user.role)) {
+      this.showToast('Sign in with a District Authority account before returning a review.', 'error');
+      return;
+    }
+    this.activeActionComplaintId = id;
+    const instructions = document.getElementById('district-return-instructions');
+    if (instructions) {
+      instructions.value = '';
+    }
+    this.openModal('modal-return-to-village');
+  }
+
+  async confirmReturnToVillage() {
+    if (!this.activeActionComplaintId) return;
+    const instructionsInput = document.getElementById('district-return-instructions');
+    const instructions = instructionsInput ? instructionsInput.value.trim() : '';
+    if (!instructions) {
+      this.showToast('Enter District Authority instructions before escalation.', 'warning');
+      return;
+    }
+
+    try {
+      const complaint = await window.dataStore.returnDistrictReview(
+        this.activeActionComplaintId,
+        instructions
+      );
+      this.closeModal('modal-return-to-village');
+      this.showToast(`Complaint returned to Grama Sachivalayam with a 24-hour deadline.`, 'success');
+      await this.refreshAllViews();
+      return complaint;
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
+  }
+
+  async loadOfficialUrgentEscalations() {
+    if (!window.dataStore.authUser || window.dataStore.authUser.role !== 'GRAMA_SACHIVALAYAM') {
+      this.showToast('Sign in with a Grama Sachivalayam account to view urgent returns.', 'error');
+      return;
+    }
+    await this.renderOfficialUrgentEscalations();
+  }
+
+  async renderOfficialUrgentEscalations() {
+    const list = document.getElementById('official-urgent-list');
+    const count = document.getElementById('official-urgent-count');
+    if (!list) return;
+    const user = window.dataStore.authUser;
+    if (!user || user.role !== 'GRAMA_SACHIVALAYAM') {
+      if (count) count.textContent = 'Authentication required';
+      list.textContent = 'Sign in with an officer account to view department-appropriate urgent escalations.';
+      return;
+    }
+
+    try {
+      const complaints = await window.dataStore.getUrgentEscalations();
+      if (count) count.textContent = `${complaints.length} Urgent Return${complaints.length === 1 ? '' : 's'}`;
+      if (complaints.length === 0) {
+        list.innerHTML = '<p class="empty-queue-message">There are no open District Authority returns for this department.</p>';
+        return;
+      }
+      list.innerHTML = complaints.map(complaint => `
+        <article class="urgent-escalation-item">
+          <div class="order-complaint-heading">
+            <span class="id-badge">${this.escapeHtml(complaint.id)}</span>
+            <span class="status-pill status-urgent">24-HOUR DISTRICT ESCALATION</span>
+          </div>
+          <h4>${this.escapeHtml(complaint.title)}</h4>
+          <p>${this.escapeHtml(complaint.description)}</p>
+          <p><strong>Department:</strong> ${this.escapeHtml(complaint.assignedDepartment)}</p>
+          <p><strong>District instructions:</strong> ${this.escapeHtml(complaint.urgentEscalation.instructions)}</p>
+          <p><strong>Deadline:</strong> ${this.escapeHtml(this.formatDate(complaint.urgentEscalation.deadlineAt))}</p>
+          <button type="button" class="btn-dash-outline" onclick="app.openOfficialActionModal('${this.escapeHtml(complaint.id)}')">Review Urgent Escalation</button>
+        </article>
+      `).join('');
+    } catch (error) {
+      if (count) count.textContent = 'Escalations unavailable';
+      list.innerHTML = `<p class="order-message-error" role="alert">${this.escapeHtml(error.message)}</p>`;
+    }
+  }
+
   openEscalateModal(id) {
     this.activeActionComplaintId = id;
     const directiveInput = document.getElementById('escalate-directive-text');
+    const usernameInput = document.getElementById('admin-username');
+    const passwordInput = document.getElementById('admin-password');
     if (directiveInput) {
       directiveInput.value = i18n.getLanguage() === 'te'
         ? 'జిల్లా కలెక్టర్ వారి అత్యవసర ఆదేశాలు: 24 గంటలలోపు ప్రత్యేక ఫీల్డ్ బృందాన్ని పంపి సమస్యను పరిష్కరించి సాయంత్రం 5 గంటలలోపు నివేదిక సమర్పించాలి.'
         : 'Emergency directive issued by District Collector. Dispatch emergency engineering unit within 24 hours. Submit compliance report by 5 PM.';
     }
+    if (usernameInput) usernameInput.value = '';
+    if (passwordInput) passwordInput.value = '';
     this.openModal('modal-escalate');
   }
 
@@ -995,20 +1835,38 @@ class AppController {
 
     const directiveInput = document.getElementById('escalate-directive-text');
     const directive = directiveInput ? directiveInput.value.trim() : 'Collectorate Escalation Mandate';
+    const usernameInput = document.getElementById('admin-username');
+    const passwordInput = document.getElementById('admin-password');
+    const username = usernameInput ? usernameInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+    if (!username || !password) {
+      this.showToast(i18n.t('adminLoginRequired'), 'error');
+      return;
+    }
 
-    await window.dataStore.escalateComplaint(
-      this.activeActionComplaintId,
-      directive,
-      'District Collector (Dr. Ananya Reddy, IAS)'
-    );
+    try {
+      const login = await window.dataStore.login(username, password);
+      if (passwordInput) passwordInput.value = '';
+      if (login.user.role !== 'ADMIN') {
+        this.showToast(i18n.t('adminLoginRequired'), 'error');
+        return;
+      }
+      await window.dataStore.escalateComplaint(
+        this.activeActionComplaintId,
+        directive,
+        login.accessToken
+      );
 
-    this.closeModal('modal-escalate');
-    this.showToast(`Collector Executive Order issued for ${this.activeActionComplaintId}!`, 'error');
+      this.closeModal('modal-escalate');
+      this.showToast(`Collector Executive Order issued for ${this.activeActionComplaintId}!`, 'error');
 
-    this.renderAuthorityConsole();
-    this.refreshAllViews();
-    if (this.currentActiveComplaintId === this.activeActionComplaintId) {
-      this.renderTrackingDossier(this.currentActiveComplaintId);
+      this.renderAuthorityConsole();
+      this.refreshAllViews();
+      if (this.currentActiveComplaintId === this.activeActionComplaintId) {
+        this.renderTrackingDossier(this.currentActiveComplaintId);
+      }
+    } catch (error) {
+      this.showToast(error.message, 'error');
     }
   }
 
@@ -1017,7 +1875,8 @@ class AppController {
      ========================================================================== */
   async renderTransparencyPage() {
     const stats = await window.dataStore.getStats();
-    const complaints = await window.dataStore.getAllComplaints();
+    const complaints = (await window.dataStore.getAllComplaints())
+      .filter(complaint => !complaint.isHackathonSample);
 
     // Metric counters
     const tTotal = document.getElementById('trans-stat-total');
@@ -1114,16 +1973,21 @@ class AppController {
     await this.updateStatsCounters();
     await this.renderCitizenDashboard();
     await this.renderOfficialTable();
+    await this.renderOfficialUrgentEscalations();
     await this.renderAuthorityConsole();
     await this.renderTransparencyPage();
   }
 
   async confirmResetData() {
-    if (confirm('Reset prototype sample complaints to initial demonstration state?')) {
-      await window.dataStore.resetData();
-      this.currentActiveComplaintId = 'PP-2025-RD-1042';
-      this.renderTrackingDossier(this.currentActiveComplaintId);
-      this.showToast('Sample dataset restored to initial hackathon seed state!', 'success');
+    if (confirm('Restore complaint records to their initial state?')) {
+      try {
+        await window.dataStore.resetData();
+        this.currentActiveComplaintId = 'PP-2025-RD-1042';
+        this.renderTrackingDossier(this.currentActiveComplaintId);
+        this.showToast('Complaint records restored to their initial state.', 'success');
+      } catch (error) {
+        this.showToast(error.message, 'error');
+      }
     }
   }
 
@@ -1168,6 +2032,9 @@ class AppController {
       case 'Resolved': return 'status-resolved';
       case 'Reopened': return 'status-reopened';
       case 'Escalated': return 'status-escalated';
+      case 'FORWARDED_TO_DISTRICT': return 'status-forwarded';
+      case 'DISTRICT_ESCALATED':
+      case 'URGENT_ESCALATION': return 'status-urgent';
       default: return 'status-submitted';
     }
   }
@@ -1180,6 +2047,9 @@ class AppController {
       case 'Resolved': return i18n.t('statusResolved');
       case 'Reopened': return i18n.t('statusReopened');
       case 'Escalated': return i18n.t('statusEscalated');
+      case 'FORWARDED_TO_DISTRICT': return 'Forwarded to District';
+      case 'DISTRICT_ESCALATED': return 'Escalated to Grama Sachivalayam';
+      case 'URGENT_ESCALATION': return 'Urgent Grama Sachivalayam Action (24h)';
       default: return status;
     }
   }
@@ -1187,13 +2057,28 @@ class AppController {
   formatDate(isoString) {
     if (!isoString) return '';
     const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: 'Asia/Kolkata',
+      timeZoneName: 'short'
     });
+  }
+
+  formatForwardedAt(complaint) {
+    const forwardedAt = complaint.forwardedAt || complaint.districtReviewReceivedAt;
+    if (!forwardedAt) return 'Not recorded';
+    const forwardedTime = Date.parse(forwardedAt);
+    const createdTime = Date.parse(complaint.createdAt);
+    if (!Number.isFinite(forwardedTime) || forwardedTime === createdTime) {
+      return 'Not recorded (legacy complaint)';
+    }
+    return this.formatDate(forwardedAt) || 'Timestamp unavailable';
   }
 
   formatTimeAgo(isoString) {
